@@ -1,9 +1,9 @@
 //
 // MainActivity.java
-// 
+//
 // Created by ooVoo on July 22, 2013
 //
-// © 2013 ooVoo, LLC.  Used under license. 
+// © 2013 ooVoo, LLC.  Used under license.
 //
 package com.ooVoo.oovoosample.Main;
 
@@ -16,15 +16,12 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -36,7 +33,6 @@ import com.ooVoo.oovoosample.ConferenceManager;
 import com.ooVoo.oovoosample.ConferenceManager.SessionListener;
 import com.ooVoo.oovoosample.R;
 import com.ooVoo.oovoosample.SessionUIPresenter;
-import com.ooVoo.oovoosample.Common.AlertsManager;
 import com.ooVoo.oovoosample.Common.ParticipantHolder.RenderViewData;
 import com.ooVoo.oovoosample.Common.ParticipantVideoSurface;
 import com.ooVoo.oovoosample.Common.ParticipantsManager;
@@ -46,10 +42,14 @@ import com.ooVoo.oovoosample.Settings.UserSettings;
 import com.ooVoo.oovoosample.VideoCall.VideoCallActivity;
 import com.oovoo.core.IConferenceCore.ConferenceCoreError;
 
+import net.hockeyapp.android.CrashManager; //REMOVE_IN_BUNDLE
+import net.hockeyapp.android.UpdateManager; //REMOVE_IN_BUNDLE
+
 // Main presenter entity
 public class MainActivity extends Activity implements OnClickListener,
 		SessionListener, SessionUIPresenter {
 
+	private static final String APP_ID = "55bb37c78c5603e3d43b96f8f30fc5d8"; //REMOVE_IN_BUNDLE
 	private static final String TAG = MainActivity.class.getName();
 	private ConferenceManager mConferenceManager = null;
 	private EditText mSessionIdView = null;
@@ -66,6 +66,8 @@ public class MainActivity extends Activity implements OnClickListener,
 		super.onCreate(savedInstanceState);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
+		checkForUpdates(); //REMOVE_IN_BUNDLE
+
 		initView();
 		initConferenceManager();
 	}
@@ -79,54 +81,57 @@ public class MainActivity extends Activity implements OnClickListener,
 		mJoinButton = (Button) obj;
 		mJoinButton.setOnClickListener(this);
 		mJoinButton.setEnabled(false);
-		
+
 		// Retrieve and display SDK version
 		mSessionIdView = (EditText) findViewById(R.id.sessionIdText);
 		mDisplayNameView = (EditText) findViewById(R.id.displayNameText);
-		
+
 		mPreviewSurface = (ParticipantVideoSurface)findViewById(R.id.preview_layout_id);
 		mPreviewSurface.avatar = ((ImageView) findViewById(R.id.myAvatar));
 		mPreviewSurface.mVideoView = ((android.opengl.GLSurfaceView) findViewById(R.id.myVideoSurface));
-		
+
 		showAvatar();
-			
-		ActionBar ab = getActionBar();
-		if(ab != null){
-			ab.setIcon(R.drawable.ic_main);
-		}		
+
+		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
+		{
+			ActionBar ab = getActionBar();
+			if(ab != null){
+				ab.setIcon(R.drawable.ic_main);
+			}
+		}
 		Log.i(TAG, "<- Setup views");
 	}
-	
+
 	private void showAvatar() {
 		mPreviewSurface.avatar.setVisibility(View.VISIBLE);
 	}
-	
+
 	private void hideAvatar() {
 		mPreviewSurface.avatar.setVisibility(View.INVISIBLE);
 		mPreviewSurface.mVideoView.setVisibility(View.VISIBLE);
 	}
-	
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 	    MenuInflater inflater = getMenuInflater();
 	    inflater.inflate(R.menu.main_menu, menu);
-	    
+
 	    return true;
 	}
-	
+
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		if (item == null)
 			return false;
 
-		switch (item.getItemId()) {			
+		switch (item.getItemId()) {
 			case R.id.menu_settings:
 				if (!isInitialized) {
 					Toast.makeText(getApplicationContext(), R.string.initialization_wait, Toast.LENGTH_SHORT).show();
 				}
 
 				startActivity(SettingsActivity.class);
-		
+
 				return true;
 		}
 		return super.onOptionsItemSelected(item);
@@ -138,7 +143,7 @@ public class MainActivity extends Activity implements OnClickListener,
 				Log.i(TAG, "Init ConferenceManager");
 				mConferenceManager = ConferenceManager.getInstance(getApplicationContext());
 			}
-			
+
 			mConferenceManager.removeSessionListener(this);
 			mConferenceManager.addSessionListener(this);
 			mConferenceManager.initConference();
@@ -173,43 +178,49 @@ public class MainActivity extends Activity implements OnClickListener,
 	}
 
 	@Override
-	public void onClick(View v) {	
+	public void onClick(View v) {
 		if(v == null)
 			return;
-		
+
 		if (!isOnline()) {
 			Utils.ShowMessageBox(this, "Network Error",
 					"No Internet Connection. Please check your internet connection or try again later.");
 			return;
 		}
-		
+
+		if (mDisplayNameView.getText().toString().isEmpty()) {
+			onJoinSessionWrongDataError();
+
+			return;
+		}
+
 		switch(v.getId()){
 			case R.id.joinButton1:
 
 				if (mConferenceManager.isSdkInitialized()) {
 					onJoinSession();
 				} else {
-					Toast.makeText(getApplicationContext(), R.string.initialization_wait, Toast.LENGTH_SHORT).show();			    
+					Toast.makeText(getApplicationContext(), R.string.initialization_wait, Toast.LENGTH_SHORT).show();
 				    initConferenceManager();
 				}
 				break;
 		}
 	}
-	
+
 	private synchronized void onJoinSession() {
-		
+
 		if (isJoining) {
 			return;
 		}
-		
+
 		isJoining = true;
 
-		saveSettings();	
+		saveSettings();
 
 		// Join session
 		mJoinButton.setEnabled(false);
 		showWaitingMessage();
-		mConferenceManager.joinSession();		
+		mConferenceManager.joinSession();
 	}
 
 //	@Override
@@ -221,10 +232,11 @@ public class MainActivity extends Activity implements OnClickListener,
 	public synchronized void onResume() {
 		super.onResume();
 		Log.i(TAG, "onResume ->");
-		
+		checkForCrashes(); //REMOVE_IN_BUNDLE
+
 		// Read settings
 		UserSettings settings = mConferenceManager.retrieveSettings();
-			
+
 		try {
 			// Fill views
 			mSessionIdView.setText(settings.SessionID);
@@ -240,22 +252,21 @@ public class MainActivity extends Activity implements OnClickListener,
 			Log.i(TAG, "loadDataFromSettings ->");
 			mConferenceManager.loadDataFromSettings();
 			Log.i(TAG, "<- loadDataFromSettings");
-			
+
 			mConferenceManager.removeSessionListener(this);
 			mConferenceManager.addSessionListener(this);
-			
+
 			if (isInitialized) {
-				
+
 	    		initPreview(mPreviewSurface);
-			
+
 				mConferenceManager.resumePreviewSession();
-				
+
 				mJoinButton.setEnabled(true);
 			}
-			
+
 		} catch (Exception e) {
-			AlertsManager.getInstance().addAlert(
-					"An Error occured while trying to select Devices");
+			Log.e(TAG, "An Error occured while trying to select Devices");
 		}
 	}
 
@@ -279,24 +290,24 @@ public class MainActivity extends Activity implements OnClickListener,
 		isInitialized = true;
 		saveSettings();
 	}
-	
+
 	public synchronized void initPreview(ParticipantVideoSurface participantsVideoSurface) {
 
 		try {
 			mConferenceManager.setSessionUIPresenter(this);
 
 			ParticipantsManager mParticipantsManager = mConferenceManager.getParticipantsManager();
-		
+
 			if (mRenderViewData == null)
 				mRenderViewData = mParticipantsManager.getHolder().addGLView(participantsVideoSurface.mVideoView.getId());
 			else
 				 mParticipantsManager.getHolder().updateGLPreview(participantsVideoSurface.mVideoView.getId(), mRenderViewData);
-		
+
 		} catch (Exception e) {
 			Log.e(Utils.getOoVooTag(), "", e);
 		}
 	}
-	
+
 	private void saveSettings() {
 		UserSettings settingsToPersist = mConferenceManager.retrieveSettings();
 		settingsToPersist.SessionID = mSessionIdView.getText().toString();
@@ -310,13 +321,13 @@ public class MainActivity extends Activity implements OnClickListener,
 	private void switchToVideoCall() {
 		runOnUiThread(new Runnable() {
 			@Override
-			public void run() {				
-				hideWaitingMessage(); 
+			public void run() {
+				hideWaitingMessage();
 				startActivity(VideoCallActivity.class);
 			}
 		});
 	}
-	
+
 	private void showWaitingMessage() {
 		 mWaitingDialog = new ProgressDialog(this);
 			mWaitingDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
@@ -326,7 +337,7 @@ public class MainActivity extends Activity implements OnClickListener,
 			mWaitingDialog.setCanceledOnTouchOutside(false);
 			mWaitingDialog.show();
 	}
-	
+
 	public void hideWaitingMessage() {
 		try {
 			if (mWaitingDialog != null) {
@@ -336,7 +347,7 @@ public class MainActivity extends Activity implements OnClickListener,
 		} catch (Exception ex) {
 		}
 	}
-	
+
 	// Start a new activity using the requested effects
 	private void startActivity(Class<?> activityToStart) {
 		// Maybe should use this flag just for Video Call activity?
@@ -351,16 +362,15 @@ public class MainActivity extends Activity implements OnClickListener,
 			@Override
 			public void run() {
 				mJoinButton.setEnabled(true);
-				hideWaitingMessage(); 
+				hideWaitingMessage();
 				Utils.ShowMessageBox(MainActivity.this, titleToShow, msgToShow);
 			}
 		});
 	}
 
 	@Override
-	public void onSessionError(ConferenceCoreError error) {
-		String errorMsg = "An Error occured";
-		showErrorMessage("Error", errorMsg);
+	public void onSessionError(String error) {
+		showErrorMessage("Error", error);
 		isJoining = false;
 	}
 
@@ -399,7 +409,7 @@ public class MainActivity extends Activity implements OnClickListener,
 		runOnUiThread(new Runnable() {
 	        @Override
 	        public void run() {
-			
+
 	        	try {
 	        		Log.i(TAG, "loadDataFromSettings ->");
 	    			mConferenceManager.loadDataFromSettings();
@@ -408,10 +418,10 @@ public class MainActivity extends Activity implements OnClickListener,
 	        		initPreview(mPreviewSurface);
 
 	        		mConferenceManager.resumePreviewSession();
-	        		
+
 					isInitialized = true;
 					mJoinButton.setEnabled(true);
-					
+
 				} catch (Exception e) {
 					Log.e(TAG, "", e);
 				}
@@ -434,18 +444,28 @@ public class MainActivity extends Activity implements OnClickListener,
 	@Override
 	public void initSurfaces() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void onFullModeChanged(int id) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void onMultiModeChanged() {
 		// TODO Auto-generated method stub
-		
+
 	}
+
+	private void checkForCrashes() { //REMOVE_IN_BUNDLE
+		   CrashManager.register(this, APP_ID); //REMOVE_IN_BUNDLE
+		 } //REMOVE_IN_BUNDLE
+
+		 private void checkForUpdates() { //REMOVE_IN_BUNDLE
+		   // Remove this for store builds! //REMOVE_IN_BUNDLE
+		   UpdateManager.register(this, APP_ID); //REMOVE_IN_BUNDLE
+		 } //REMOVE_IN_BUNDLE
+
 }

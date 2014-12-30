@@ -1,4 +1,4 @@
-## Android-SDK-Sample for SDK v1.3
+## Android-SDK-Sample for SDK v1.4
 
 =================
 
@@ -8,7 +8,7 @@ This is released under an Apache 2.0 License.
 
 This requires use of the [ooVoo Android SDK](http://developer.oovoo.com) which is [separately licensed](http://developer.oovoo.com/eula3) but included here for your convenience in the *libs/* folder
 
-## Getting the SDK
+## Getting started with the SDK
 Please visit [ooVoo SDK site](http://developer.oovoo.com) to register and obtain a development token and AppID.
 
 ## Support

@@ -3,6 +3,7 @@ package com.ooVoo.oovoosample.Messenger;
 import android.app.ActionBar;
 import android.app.ListActivity;
 import android.content.pm.ActivityInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -48,15 +49,18 @@ public class MessengerActivity extends ListActivity implements IMessengerListene
 		
 		setSelection(mAdapter.getCount()-1);
 		
-		ActionBar ab = getActionBar();
-		if (ab != null) {
-			ab.setHomeButtonEnabled(true);
-			ab.setTitle(R.string.messenger_screen_name);
-			ab.setHomeButtonEnabled(true);
-			ab.setDisplayShowTitleEnabled(true);
-			ab.setDisplayShowHomeEnabled(true);
-			ab.setDisplayHomeAsUpEnabled(true);
-			ab.setDisplayUseLogoEnabled(false);
+		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
+		{
+			ActionBar ab = getActionBar();
+			if (ab != null) {
+				ab.setHomeButtonEnabled(true);
+				ab.setTitle(R.string.messenger_screen_name);
+				ab.setHomeButtonEnabled(true);
+				ab.setDisplayShowTitleEnabled(true);
+				ab.setDisplayShowHomeEnabled(true);
+				ab.setDisplayHomeAsUpEnabled(true);
+				ab.setDisplayUseLogoEnabled(false);
+			}
 		}
 	}
 	

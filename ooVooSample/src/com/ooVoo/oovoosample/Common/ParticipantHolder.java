@@ -465,7 +465,7 @@ public class ParticipantHolder {
 		
 		for (int i = 0; i < _renders.size(); i++) {
 			RenderViewData d = _renders.valueAt(i);
-			if ((d._video_on && d._user != null) && (!_on_full_mode || (_on_full_mode && d.isFullMode))) {
+			if ((d._video_on && d._user != null)) {
 				ConferenceCore.instance().receiveParticipantVideoOn(d._user);
 				Log.d(TAG, "resume GLview " + d._view_id + " for user " + d._user);
 			}

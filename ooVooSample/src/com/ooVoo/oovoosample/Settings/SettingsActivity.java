@@ -11,6 +11,7 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.pm.ActivityInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.MenuItem;
@@ -43,18 +44,20 @@ public class SettingsActivity extends Activity {
 	protected void initView() {
 		// Set layout
 		setContentView( R.layout.settings);	
-		ActionBar ab = getActionBar();
-		if(ab != null){
-			ab.setHomeButtonEnabled(true);
-			ab.setTitle(R.string.settings);
-			ab.setHomeButtonEnabled(true);
-			ab.setDisplayShowTitleEnabled(true);
-			ab.setDisplayShowHomeEnabled(true);
-			ab.setDisplayHomeAsUpEnabled(true);
-			ab.setDisplayUseLogoEnabled(false);
-			ab.setIcon(R.drawable.menu_ic_settings);
-		}
-		
+		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
+		{
+			ActionBar ab = getActionBar();
+			if(ab != null){
+				ab.setHomeButtonEnabled(true);
+				ab.setTitle(R.string.settings);
+				ab.setHomeButtonEnabled(true);
+				ab.setDisplayShowTitleEnabled(true);
+				ab.setDisplayShowHomeEnabled(true);
+				ab.setDisplayHomeAsUpEnabled(true);
+				ab.setDisplayUseLogoEnabled(false);
+				ab.setIcon(R.drawable.menu_ic_settings);
+			}
+		}		
 		mAppIdView = (EditText) findViewById(R.id.appIdText);
 		mTokenTextView = (EditText) findViewById(R.id.tokenText);
 	}

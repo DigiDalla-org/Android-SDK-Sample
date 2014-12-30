@@ -14,7 +14,6 @@
     <string name="ooVooUserSettings">ooVooUserSettings</string>
     <string name="activeUsers">Active Users:</string>
     <string name="information_screen_name">Information</string>
-    <string name="alerts">Alerts</string>
     <string name="video_call_screen_name">Video Call</string>
     <string name="volume">Volume</string>
     <string name="log_visibility">LogVisibility</string>
@@ -32,7 +31,6 @@
     <string name="microphone_type_settings_field">MicrophoneType</string>
     <string name="speakers_type_settings_field">SpeakersType</string>
     <string name="usrID">User ID:</string>
-    <string name="title_activity_alerts">Alerts</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="CloseAlertButtonCaption">Close</string>

@@ -10,8 +10,10 @@ package com.ooVoo.oovoosample.Information;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.InflateException;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -64,16 +66,19 @@ public class InformationActivity extends Activity implements SessionParticipants
 		mActiveUsersList.setDividerHeight(0);
 		mCustomAdapter = new CustomParticipantAdapter(mConferenceManager.getActiveUsers());
 		
-		ActionBar ab = getActionBar();
-		if(ab != null){
-			ab.setHomeButtonEnabled(true);
-			ab.setTitle(R.string.information_screen_name);
-			ab.setHomeButtonEnabled(true);
-			ab.setDisplayShowTitleEnabled(true);
-			ab.setDisplayShowHomeEnabled(true);
-			ab.setDisplayHomeAsUpEnabled(true);
-			ab.setDisplayUseLogoEnabled(false);
-			ab.setIcon(R.drawable.menu_ic_info);
+		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
+		{
+			ActionBar ab = getActionBar();
+			if(ab != null){
+				ab.setHomeButtonEnabled(true);
+				ab.setTitle(R.string.information_screen_name);
+				ab.setHomeButtonEnabled(true);
+				ab.setDisplayShowTitleEnabled(true);
+				ab.setDisplayShowHomeEnabled(true);
+				ab.setDisplayHomeAsUpEnabled(true);
+				ab.setDisplayUseLogoEnabled(false);
+				ab.setIcon(R.drawable.menu_ic_info);
+			}
 		}
 	}
 	
@@ -203,25 +208,32 @@ public class InformationActivity extends Activity implements SessionParticipants
 
 			ParticipantViewHolder viewHolder = null;
 			if (view == null) {
-				LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-				view = inflater.inflate(R.layout.participantinfo, parent, false);
-				viewHolder = new ParticipantViewHolder();
-				viewHolder.textView = (TextView) view.findViewById(R.id.participantId);
-				viewHolder.button = (Switch) view.findViewById(R.id.switch1);
-				view.setTag(viewHolder);			
+				LayoutInflater inflater = null;
+				try {
+					inflater = LayoutInflater.from(parent.getContext());
+					view = inflater.inflate(R.layout.participantinfo, parent, false);
+					viewHolder = new ParticipantViewHolder();
+					viewHolder.textView = (TextView) view.findViewById(R.id.participantId);
+					viewHolder.button = (Switch) view.findViewById(R.id.switch1);
+					view.setTag(viewHolder);
+				} catch( InflateException e) {
+					LogSdk.e(Utils.getOoVooTag(), "getView Exception. ", e);
+				}
 			}
 			else{
 				viewHolder = (ParticipantViewHolder)view.getTag();
 			}
 
-			final Participant participant = listArray[index];			
-			viewHolder.textView.setText(participant.getDisplayName());		
-			viewHolder.button.setTag(participant);
-			viewHolder.button.setOnCheckedChangeListener(null);//detaching the handler so it wont raise when we set the inital value
-			viewHolder.button.setChecked(participant.getIsVideoOn());
-			viewHolder.button.setOnCheckedChangeListener(this);
-			viewHolder.button.setEnabled(true);
-			
+			if( view != null && viewHolder != null)
+			{
+				final Participant participant = listArray[index];			
+				viewHolder.textView.setText(participant.getDisplayName());		
+				viewHolder.button.setTag(participant);
+				viewHolder.button.setOnCheckedChangeListener(null);//detaching the handler so it wont raise when we set the inital value
+				viewHolder.button.setChecked(participant.getIsVideoOn());
+				viewHolder.button.setOnCheckedChangeListener(this);
+				viewHolder.button.setEnabled(true);
+			}
 			return view;
 		}
 		

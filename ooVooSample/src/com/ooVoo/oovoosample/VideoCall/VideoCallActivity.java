@@ -16,6 +16,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.hardware.Camera;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -39,8 +40,6 @@ import com.ooVoo.oovoosample.ConferenceManager.SessionListener;
 import com.ooVoo.oovoosample.ConferenceManager.SessionParticipantsListener;
 import com.ooVoo.oovoosample.R;
 import com.ooVoo.oovoosample.SessionUIPresenter;
-import com.ooVoo.oovoosample.Alerts.AlertsActivity;
-import com.ooVoo.oovoosample.Common.AlertsManager;
 import com.ooVoo.oovoosample.Common.Participant;
 import com.ooVoo.oovoosample.Common.ParticipantHolder;
 import com.ooVoo.oovoosample.Common.ParticipantHolder.VideoParticipant;
@@ -169,14 +168,17 @@ public class VideoCallActivity extends Activity implements OnClickListener,
 		
 		mVCParticipantsController.onResize();
 		
-		ActionBar ab = getActionBar();
-		if(ab != null){
-			ab.setHomeButtonEnabled(false);
-			ab.setDisplayShowTitleEnabled(true);
-			ab.setDisplayShowHomeEnabled(true);
-			ab.setDisplayHomeAsUpEnabled(false);
-			ab.setDisplayUseLogoEnabled(false);
-			ab.setIcon(R.drawable.ic_main);
+		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
+		{
+			ActionBar ab = getActionBar();
+			if(ab != null){
+				ab.setHomeButtonEnabled(false);
+				ab.setDisplayShowTitleEnabled(true);
+				ab.setDisplayShowHomeEnabled(true);
+				ab.setDisplayHomeAsUpEnabled(false);
+				ab.setDisplayUseLogoEnabled(false);
+				ab.setIcon(R.drawable.ic_main);
+			}
 		}
 		
 		Log.d(Utils.getOoVooTag(), "setting filterSpinner");
@@ -251,9 +253,6 @@ public class VideoCallActivity extends Activity implements OnClickListener,
 			case R.id.menu_information:
 				openInfrormationView();
 				return true;
-			case R.id.menu_alerts:
-				openAlertsView();
-				return true;
 		}
 		return super.onOptionsItemSelected(item);
 	}
@@ -281,7 +280,7 @@ public class VideoCallActivity extends Activity implements OnClickListener,
 		}
 		case R.id.cameraButton: {
 			fireCameraEnabled(false);
-			mConferenceManager.toggleCameraMute();
+			mConferenceManager.toggleCameraSwitch();
 			break;
 		}
 		case R.id.microphoneButton: {
@@ -314,10 +313,6 @@ public class VideoCallActivity extends Activity implements OnClickListener,
 		super.onDestroy();
 	}
 
-	private void openAlertsView() {
-		startActivity(AlertsActivity.class);
-	}
-
 	public void onCameraOn() {
 		Log.d(Utils.getOoVooTag(), "OnCameraOn");
 		mConferenceManager.setCameraMuted(isCameraMuted);
@@ -336,7 +331,6 @@ public class VideoCallActivity extends Activity implements OnClickListener,
 				fireCameraMuted(isMuted);
 			}
 		});
-		AlertsManager.getInstance().addAlert( "Camera mute set to: " + isMuted);
 	}
 
 	private void fireCameraMuted(boolean isMuted) {
@@ -345,11 +339,9 @@ public class VideoCallActivity extends Activity implements OnClickListener,
 			mConferenceManager.setActiveFilter(mActiveFilterId);
 		}
 
-		final Button btn = (Button) (findViewById(R.id.cameraButton));
 		final SurfaceView myVideoSurface = ((SurfaceView) findViewById(R.id.myVideoSurface));
 		
 		int new_v = isMuted ? SurfaceView.INVISIBLE : SurfaceView.VISIBLE;
-		btn.setSelected(isMuted ? true : false);
 		myVideoSurface.setVisibility(new_v);
 		ParticipantVideoSurface surface = _surfaces.get(myVideoSurface.getId());
 		if (surface != null) {
@@ -378,7 +370,7 @@ public class VideoCallActivity extends Activity implements OnClickListener,
 				fireMicrophoneMuted(isMuted);
 			}
 		});
-		AlertsManager.getInstance().addAlert("Microphone mute set to: " + isMuted);
+		Log.d(Utils.getOoVooTag(), "Microphone mute set to: " + isMuted);
 	}
 
 	private void fireMicrophoneMuted(boolean isMuted) {
@@ -395,7 +387,7 @@ public class VideoCallActivity extends Activity implements OnClickListener,
 				fireSpeakersMuted(isMuted);
 			}
 		});
-		AlertsManager.getInstance().addAlert("Speakers mute set to: " + isMuted);
+		Log.d(Utils.getOoVooTag(), "Speakers mute set to: " + isMuted);
 	}
 
 	private void fireSpeakersMuted(boolean isMuted) {
@@ -483,6 +475,7 @@ public class VideoCallActivity extends Activity implements OnClickListener,
 					ParticipantVideoSurface surface = _surfaces.get(participantViewId);
 					if (surface != null) {
 						surface.showAvatar();
+						surface.setState(States.STATE_AVATAR);
 					}
 				}
 			}
@@ -558,7 +551,7 @@ public class VideoCallActivity extends Activity implements OnClickListener,
 	}
 
 	@Override
-	public void onSessionError(ConferenceCoreError error) {
+	public void onSessionError(String error) {
 	}
 
 	@Override
@@ -678,8 +671,10 @@ public class VideoCallActivity extends Activity implements OnClickListener,
 					ParticipantVideoSurface surface = _surfaces
 							.get(participantViewId);
 					if (surface != null) {
+						ParticipantsManager participantsManager = mConferenceManager.getParticipantsManager();
+						Participant participant = participantsManager.getParticipant(sParticipantId);
 						surface.showVideo();
-						surface.setName(sParticipantId);
+						surface.setName(participant.getDisplayName());
 						surface.setState(States.STATE_VIDEO);
 					}
 				}
