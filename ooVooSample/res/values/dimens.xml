@@ -6,6 +6,7 @@
 	<dimen name="activity_padding">16dp</dimen>
     <dimen name="vc_surface_text_height">26dp</dimen>
     <dimen name="vc_surface_margin">5dp</dimen>
+    <dimen name="vc_surface_padding">5dp</dimen>
     <dimen name="vc_controller_height">55dip</dimen>
     <dimen name="vc_controller_button_size">42dip</dimen>
     <dimen name="main_row_height">40dip</dimen>

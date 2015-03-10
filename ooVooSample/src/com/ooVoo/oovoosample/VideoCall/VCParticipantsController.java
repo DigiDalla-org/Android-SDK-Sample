@@ -17,7 +17,6 @@ import android.view.View;
 import com.ooVoo.oovoosample.Common.ParticipantHolder;
 import com.ooVoo.oovoosample.Common.ParticipantVideoSurface;
 import com.ooVoo.oovoosample.Common.Utils;
-import com.oovoo.core.Utils.LogSdk;
 
 /**
  * Represents the layer contains and layouts the video call surfaces

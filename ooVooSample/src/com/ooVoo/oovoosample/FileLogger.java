@@ -116,7 +116,6 @@ public class FileLogger implements ILoggerListener, Runnable {
 
 		
 		String sLogDirPath = AppUtils.getAppLogDir();
-		//String fileName = "ooVooSampleLogFile_" + dateFormat.format(Calendar.getInstance().getTime()) + "_" + timeFormat.format(Calendar.getInstance().getTime()) + ".txt";
 		String fileName = AppUtils.getAppName() + "_" + dateFormat.format(Calendar.getInstance().getTime()) + ".txt";
 
 		try {

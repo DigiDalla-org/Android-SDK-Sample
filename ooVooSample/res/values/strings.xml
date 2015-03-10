@@ -41,18 +41,20 @@
   <string name="menu_information">Information</string>
   <string name="title_me">Me</string>
   <string name="please_wait">Please wait...</string>
-  <string name="settings_camera">Camera:</string>
-  <string name="settings_mic">Microphone:</string>
-  <string name="settings_speaker">Speaker:</string>
   <string name="info_participants">Participants:</string>
   <string name="video_error_msg">Video cannot be viewed.</string>
-  <string name="messenger_screen_name">Messages</string>
   <string name="settings_base_url">Base URL:</string>
   <string name="base_url_settings_field">BaseURL</string>
-  <string name="message_field_hint">"Write here"</string>
-  <string name="message_button_send">"Send"</string>
   <string name="log_level">"SDK Log Level"</string>
   <string name="initialization_wait">"Initialization, please wait"</string>
+  <string name="change_camera">"Change camera"</string> 
+  <string name="front_camera">"Front camera"</string> 
+  <string name="back_camera">"Back camera"</string> 
+  <string name="mute_camera">"Mute camera"</string> 
+  <string name="low">"Low"</string> 
+  <string name="med">"Med"</string> 
+  <string name="hi">"Hi"</string> 
+  <string name="hd">"HD"</string>   
+  <string name="audio_routes">"Audio Routes"</string>   
   
-
 </resources>

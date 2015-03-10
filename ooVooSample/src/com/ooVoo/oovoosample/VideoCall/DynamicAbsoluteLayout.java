@@ -15,7 +15,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.ooVoo.oovoosample.R;
-import com.oovoo.core.Utils.LogSdk;
 
 /**
  * A layout that lets you specify exact locations (x/y coordinates) of its

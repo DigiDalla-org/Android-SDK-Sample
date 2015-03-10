@@ -15,12 +15,11 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.ooVoo.oovoosample.Common.Utils;
 import com.ooVoo.oovoosample.R;
+import com.ooVoo.oovoosample.Common.Utils;
 import com.oovoo.core.IConferenceCore;
 import com.oovoo.core.IConferenceCore.CameraResolutionLevel;
 import com.oovoo.core.IConferenceCore.LogLevel;
-import com.oovoo.core.Utils.LogSdk;
 
 // Manages saving & loading of the UserSettings class
 public class UserSettingsManager
@@ -61,14 +60,11 @@ public class UserSettingsManager
 			mSettings.SessionID = sharedPref.getString(mContext.getResources().getString(R.string.session_id_settings_field), "");
 			mSettings.AppId = sharedPref.getString(mContext.getResources().getString(R.string.appIdPersisted), AppId);
 			mSettings.AppToken = sharedPref.getString(mContext.getResources().getString(R.string.appTokenPersisted), AppToken);
-			mSettings.CameraType = sharedPref.getInt(mContext.getResources().getString(R.string.camera_type_settings_field), 1);
-			mSettings.MicrophoneType = sharedPref.getInt(mContext.getResources().getString(R.string.microphone_type_settings_field), 1);
-			mSettings.SpeakersType = sharedPref.getInt(mContext.getResources().getString(R.string.speakers_type_settings_field), 2);
 			mSettings.UserID=sharedPref.getString(mContext.getResources().getString(R.string.usrID), "");
 			mSettings.DisplayName=sharedPref.getString(mContext.getResources().getString(R.string.displayName), "");
 			String res=sharedPref.getString(mContext.getResources().getString(R.string.resolution), CameraResolutionLevel.ResolutionMedium.toString());
 			mSettings.Resolution=CameraResolutionLevel.valueOf(res);
-			mSettings.CurrentLogLevel = LogLevel.fromString(sharedPref.getString(mContext.getResources().getString(R.string.log_level), LogLevel.Debug.toString()));
+			mSettings.CurrentLogLevel = LogLevel.fromString(sharedPref.getString(mContext.getResources().getString(R.string.log_level), LogLevel.Trace.toString()));
 
 			if(mSettings.BaseURL.equals(""))
 			{
@@ -88,11 +84,11 @@ public class UserSettingsManager
 			}
 			if(mSettings.AppId.equals(""))
 			{
-				mSettings.AppId="";
+				mSettings.AppId="9983350480";
 			}
 			if(mSettings.AppToken.equals(""))
 			{
-				mSettings.AppToken="";
+				mSettings.AppId="MDAxMDAxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACzL65x/X8c0RKpJ4E+cAArZQ/qhm1SsUdPAn4opnTtCp2j6xuvd4rIOL2OI6UOwXEWPb6+C4ukc1GOxGqwykh4RLB6DFgifGQNeAM2CtUISQ==";
 			}
 			if(mSettings.CurrentLogLevel == LogLevel.None )
 			{
@@ -119,10 +115,6 @@ public class UserSettingsManager
 			prefEditor.putString(mContext.getResources().getString(R.string.appTokenPersisted), toPersist.AppToken);
 			prefEditor.putString(mContext.getResources().getString(R.string.usrID), toPersist.UserID);
 			prefEditor.putString(mContext.getResources().getString(R.string.displayName), toPersist.DisplayName);
-			prefEditor.putInt(mContext.getResources().getString(R.string.camera_type_settings_field), toPersist.CameraType);
-			prefEditor.putInt(mContext.getResources().getString(R.string.microphone_type_settings_field), toPersist.MicrophoneType);
-			prefEditor.putInt(mContext.getResources().getString(R.string.speakers_type_settings_field), toPersist.SpeakersType);
-			//prefEditor.putString(mContext.getResources().getString(R.string.resolution), toPersist.Resolution.toString());
 			prefEditor.putString(mContext.getResources().getString(R.string.log_level), toPersist.CurrentLogLevel.toString());
 			prefEditor.commit();
 		}

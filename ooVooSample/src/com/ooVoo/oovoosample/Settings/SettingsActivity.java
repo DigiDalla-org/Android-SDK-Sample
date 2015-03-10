@@ -44,6 +44,7 @@ public class SettingsActivity extends Activity {
 	protected void initView() {
 		// Set layout
 		setContentView( R.layout.settings);	
+		
 		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
 		{
 			ActionBar ab = getActionBar();
@@ -57,7 +58,7 @@ public class SettingsActivity extends Activity {
 				ab.setDisplayUseLogoEnabled(false);
 				ab.setIcon(R.drawable.menu_ic_settings);
 			}
-		}		
+		}
 		mAppIdView = (EditText) findViewById(R.id.appIdText);
 		mTokenTextView = (EditText) findViewById(R.id.tokenText);
 	}
@@ -102,16 +103,6 @@ public class SettingsActivity extends Activity {
 		mAppIdView.setText(settings.AppId);
 		mTokenTextView.setText(settings.AppToken);
 		
-		// Fill spinners - get devices from model
-		Spinner cameraSpinner = (Spinner) findViewById(R.id.cameraSpinner);
-		setSpinnerValues(cameraSpinner, mConferenceManager.getCameras());
-
-		Spinner microphoneSpinner = (Spinner) findViewById(R.id.microphoneSpinner);
-		setSpinnerValues(microphoneSpinner, mConferenceManager.getMicrohones());
-
-		Spinner speakersSpinner = (Spinner) findViewById(R.id.speakersSpinner);
-		setSpinnerValues(speakersSpinner, mConferenceManager.getSpeakers());
-		
 		// Set log spinner
 		Spinner logSpinner = (Spinner) findViewById(R.id.logLevelSpinner);
 		ArrayAdapter<String> logAdapter;
@@ -121,14 +112,6 @@ public class SettingsActivity extends Activity {
 		logSpinner.setAdapter(logAdapter);
 		int logSpinnerPosition = logAdapter.getPosition(mConferenceManager.retrieveSettings().CurrentLogLevel.toString());
 		logSpinner.setSelection(logSpinnerPosition);
-
-		// Set spinners
-		setSelectedSpinnerValue(cameraSpinner, new MediaDeviceWrapper(
-				settings.CameraType));
-		setSelectedSpinnerValue(microphoneSpinner, new MediaDeviceWrapper(
-				settings.MicrophoneType));
-		setSelectedSpinnerValue(speakersSpinner, new MediaDeviceWrapper(
-				settings.SpeakersType));
 		
 		TextView sdk = (TextView) findViewById(R.id.sdkVersionText);
 		sdk.setText(mConferenceManager.getSDKVersion());
@@ -147,9 +130,6 @@ public class SettingsActivity extends Activity {
 
 		// Persist changes
 		EditText baseUrl = (EditText) findViewById(R.id.baseUrlEditText);
-		Spinner cameraSpinner = (Spinner) findViewById(R.id.cameraSpinner);
-		Spinner microphoneSpinner = (Spinner) findViewById(R.id.microphoneSpinner);
-		Spinner speakersSpinner = (Spinner) findViewById(R.id.speakersSpinner);
 		Spinner logSpinner = (Spinner)findViewById(R.id.logLevelSpinner);
 		
 		UserSettings settingsToPersist = mConferenceManager.retrieveSettings();
@@ -169,15 +149,7 @@ public class SettingsActivity extends Activity {
 			
 			mConferenceManager.resetFlagSdkInited();
 		}
-		
-		MediaDeviceWrapper cameraWrapper = getSelectedSpinnerValue(cameraSpinner);
-		settingsToPersist.CameraType = cameraWrapper == null? 0 : cameraWrapper.getDeviceId();
-		MediaDeviceWrapper micWrapper = getSelectedSpinnerValue(microphoneSpinner);
-		settingsToPersist.MicrophoneType = micWrapper == null? 0 : micWrapper.getDeviceId();
-		
-		MediaDeviceWrapper speakersWrapper = getSelectedSpinnerValue(speakersSpinner);
-		settingsToPersist.SpeakersType = speakersWrapper == null ? 0 : speakersWrapper.getDeviceId();
-		
+				
 		settingsToPersist.CurrentLogLevel = LogLevel.fromString(logLevel);
 		
 		mConferenceManager.persistSettings(settingsToPersist);

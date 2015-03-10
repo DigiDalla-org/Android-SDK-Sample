@@ -33,183 +33,225 @@ import com.ooVoo.oovoosample.ConferenceManager;
 import com.ooVoo.oovoosample.ConferenceManager.SessionListener;
 import com.ooVoo.oovoosample.R;
 import com.ooVoo.oovoosample.SessionUIPresenter;
-import com.ooVoo.oovoosample.Common.ParticipantHolder.RenderViewData;
 import com.ooVoo.oovoosample.Common.ParticipantVideoSurface;
-import com.ooVoo.oovoosample.Common.ParticipantsManager;
 import com.ooVoo.oovoosample.Common.Utils;
 import com.ooVoo.oovoosample.Settings.SettingsActivity;
 import com.ooVoo.oovoosample.Settings.UserSettings;
 import com.ooVoo.oovoosample.VideoCall.VideoCallActivity;
 import com.oovoo.core.IConferenceCore.ConferenceCoreError;
 
-import net.hockeyapp.android.CrashManager; //REMOVE_IN_BUNDLE
-import net.hockeyapp.android.UpdateManager; //REMOVE_IN_BUNDLE
-
 // Main presenter entity
-public class MainActivity extends Activity implements OnClickListener,
-		SessionListener, SessionUIPresenter {
+public class MainActivity extends Activity implements OnClickListener, SessionListener, SessionUIPresenter
+{
 
-	private static final String APP_ID = "55bb37c78c5603e3d43b96f8f30fc5d8"; //REMOVE_IN_BUNDLE
-	private static final String TAG = MainActivity.class.getName();
-	private ConferenceManager mConferenceManager = null;
-	private EditText mSessionIdView = null;
-	private EditText mDisplayNameView = null;
-	private Button mJoinButton = null;
-	private ProgressDialog mWaitingDialog = null;
-	private ParticipantVideoSurface mPreviewSurface;
-	private Boolean isInitialized = false;
-	private RenderViewData mRenderViewData = null;
-	private boolean isJoining = false;
+	private static final String		TAG					= MainActivity.class.getName();
+	private ConferenceManager		mConferenceManager	= null;
+	private EditText				mSessionIdView		= null;
+	private EditText				mDisplayNameView	= null;
+	private Button					mJoinButton			= null;
+	private ProgressDialog			mWaitingDialog		= null;
+	private ParticipantVideoSurface	mPreviewSurface;
+	private Boolean					isInitialized		= false;
+	private boolean					isJoining			= false;
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-
-		checkForUpdates(); //REMOVE_IN_BUNDLE
-
-		initView();
-		initConferenceManager();
-	}
-
-	protected void initView() {
-		Log.i(TAG, "Setup views ->");
-		// Set layout
-		setContentView(R.layout.main);
-		// Register for button press
-		Object obj = findViewById(R.id.joinButton1);
-		mJoinButton = (Button) obj;
-		mJoinButton.setOnClickListener(this);
-		mJoinButton.setEnabled(false);
-
-		// Retrieve and display SDK version
-		mSessionIdView = (EditText) findViewById(R.id.sessionIdText);
-		mDisplayNameView = (EditText) findViewById(R.id.displayNameText);
-
-		mPreviewSurface = (ParticipantVideoSurface)findViewById(R.id.preview_layout_id);
-		mPreviewSurface.avatar = ((ImageView) findViewById(R.id.myAvatar));
-		mPreviewSurface.mVideoView = ((android.opengl.GLSurfaceView) findViewById(R.id.myVideoSurface));
-
-		showAvatar();
-
-		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
-		{
-			ActionBar ab = getActionBar();
-			if(ab != null){
-				ab.setIcon(R.drawable.ic_main);
-			}
-		}
-		Log.i(TAG, "<- Setup views");
-	}
-
-	private void showAvatar() {
-		mPreviewSurface.avatar.setVisibility(View.VISIBLE);
-	}
-
-	private void hideAvatar() {
-		mPreviewSurface.avatar.setVisibility(View.INVISIBLE);
-		mPreviewSurface.mVideoView.setVisibility(View.VISIBLE);
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-	    MenuInflater inflater = getMenuInflater();
-	    inflater.inflate(R.menu.main_menu, menu);
-
-	    return true;
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		if (item == null)
-			return false;
-
-		switch (item.getItemId()) {
-			case R.id.menu_settings:
-				if (!isInitialized) {
-					Toast.makeText(getApplicationContext(), R.string.initialization_wait, Toast.LENGTH_SHORT).show();
-				}
-
-				startActivity(SettingsActivity.class);
-
-				return true;
-		}
-		return super.onOptionsItemSelected(item);
-	}
-
-	private void initConferenceManager() {
-		if (!isInitialized) {
-			if( mConferenceManager == null) {
-				Log.i(TAG, "Init ConferenceManager");
-				mConferenceManager = ConferenceManager.getInstance(getApplicationContext());
-			}
-
-			mConferenceManager.removeSessionListener(this);
-			mConferenceManager.addSessionListener(this);
-			mConferenceManager.initConference();
-		}
-	}
-
-	public String getAppVersion() {
+	public String getAppVersion()
+	{
 		String versionName = new String();
-		try {
-			versionName = this.getPackageManager().getPackageInfo(
-					this.getPackageName(), 0).versionName;
-		} catch (NameNotFoundException e) {
-			Log.e(TAG, "", e);
+		try
+		{
+			versionName = this.getPackageManager().getPackageInfo( this.getPackageName(), 0).versionName;
+		} catch( NameNotFoundException e)
+		{
+			Log.e( TAG, "", e);
 		}
 		return versionName;
 	}
 
-	public boolean isOnline() {
-		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-		try {
+	private void hideAvatar()
+	{
+		if( mPreviewSurface != null)
+		{
+			mPreviewSurface.avatar.setVisibility( View.INVISIBLE);
+			mPreviewSurface.mVideoView.setVisibility( View.VISIBLE);
+		}
+	}
+
+	public void hideWaitingMessage()
+	{
+		try
+		{
+			if( mWaitingDialog != null)
+			{
+				mWaitingDialog.dismiss();
+			}
+			mWaitingDialog = null;
+		} catch( Exception ex)
+		{
+		}
+	}
+
+	private void initConferenceManager()
+	{
+		if( !isInitialized)
+		{
+			if( mConferenceManager == null)
+			{
+				Log.i( TAG, "Init ConferenceManager");
+				mConferenceManager = ConferenceManager.getInstance( getApplicationContext());
+			}
+
+			if( mConferenceManager != null)
+			{
+				mConferenceManager.removeSessionListener( this);
+				mConferenceManager.addSessionListener( this);
+				mConferenceManager.initConferenceCore();
+			}
+		}
+	}
+
+	@Override
+	public void initSurfaces()
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	protected void initView()
+	{
+		Log.i( TAG, "Setup views ->");
+		mConferenceManager.getParticipantsManager().addParticipant( ConferenceManager.LOCAL_PARTICIPANT_ID_DEFAULT,
+				"Me", mPreviewSurface.mVideoView.getId());
+		mConferenceManager.getParticipantsManager().setVideoOn( ConferenceManager.LOCAL_PARTICIPANT_ID_DEFAULT, true);
+
+		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1)
+		{
+			ActionBar ab = getActionBar();
+			if( ab != null)
+			{
+				ab.setIcon( R.drawable.ic_main);
+			}
+		}
+		Log.i( TAG, "<- Setup views");
+	}
+
+	public boolean isOnline()
+	{
+		ConnectivityManager cm = (ConnectivityManager) getSystemService( Context.CONNECTIVITY_SERVICE);
+		try
+		{
 			NetworkInfo netInfo = cm.getActiveNetworkInfo();
-			if (netInfo != null && netInfo.isConnectedOrConnecting()) {
+			if( netInfo != null && netInfo.isConnectedOrConnecting())
+			{
 				return true;
 			}
-		} catch (Exception e) {
-			Log.d(Utils.getOoVooTag(),
-					"An exception while trying to find internet connectivity: "
-							+ e.getMessage());
+		} catch( Exception e)
+		{
+			Log.d( Utils.getOoVooTag(), "An exception while trying to find internet connectivity: " + e.getMessage());
 			// probably connectivity problem so we will return false
 		}
 		return false;
 	}
 
 	@Override
-	public void onClick(View v) {
-		if(v == null)
+	public void onBackPressed()
+	{
+		if( mConferenceManager != null)
+			mConferenceManager.leaveSession();
+		super.onBackPressed();
+	}
+
+	@Override
+	public void onClick( View v)
+	{
+		if( v == null)
 			return;
 
-		if (!isOnline()) {
-			Utils.ShowMessageBox(this, "Network Error",
+		if( !isOnline())
+		{
+			Utils.ShowMessageBox( this, "Network Error",
 					"No Internet Connection. Please check your internet connection or try again later.");
 			return;
 		}
 
-		if (mDisplayNameView.getText().toString().isEmpty()) {
+		if( mDisplayNameView.getText().toString().isEmpty())
+		{
 			onJoinSessionWrongDataError();
 
 			return;
 		}
 
-		switch(v.getId()){
-			case R.id.joinButton1:
+		switch( v.getId())
+		{
+		case R.id.joinButton1:
 
-				if (mConferenceManager.isSdkInitialized()) {
-					onJoinSession();
-				} else {
-					Toast.makeText(getApplicationContext(), R.string.initialization_wait, Toast.LENGTH_SHORT).show();
-				    initConferenceManager();
-				}
-				break;
+			if( mConferenceManager.isSdkInitialized())
+			{
+				onJoinSession();
+			}
+			else
+			{
+				Toast.makeText( getApplicationContext(), R.string.initialization_wait, Toast.LENGTH_SHORT).show();
+				initConferenceManager();
+			}
+			break;
 		}
 	}
 
-	private synchronized void onJoinSession() {
+	@Override
+	protected void onCreate( Bundle savedInstanceState)
+	{
+		super.onCreate( savedInstanceState);
+		setRequestedOrientation( ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+		Log.d( TAG, "main activity onCreate");
 
-		if (isJoining) {
+		// Set layout
+		setContentView( R.layout.main);
+
+		// Register for button press
+		Object obj = findViewById( R.id.joinButton1);
+		mJoinButton = (Button) obj;
+		mJoinButton.setOnClickListener( this);
+		mJoinButton.setEnabled( false);
+
+		// Retrieve and display SDK version
+		mSessionIdView = (EditText) findViewById( R.id.sessionIdText);
+		mDisplayNameView = (EditText) findViewById( R.id.displayNameText);
+
+		mPreviewSurface = (ParticipantVideoSurface) findViewById( R.id.preview_layout_id);
+		mPreviewSurface.avatar = (ImageView) findViewById( R.id.myAvatar);
+		mPreviewSurface.mVideoView = (android.opengl.GLSurfaceView) findViewById( R.id.myVideoSurface);
+
+		try
+		{
+			initConferenceManager();
+			initView();
+		} catch( Exception e)
+		{
+			Log.e( TAG, "onCreate exception: ", e);
+		}
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu( Menu menu)
+	{
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate( R.menu.main_menu, menu);
+
+		return true;
+	}
+
+	@Override
+	public void onFullModeChanged( int id)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	private synchronized void onJoinSession()
+	{
+
+		if( isJoining)
+		{
 			return;
 		}
 
@@ -218,254 +260,238 @@ public class MainActivity extends Activity implements OnClickListener,
 		saveSettings();
 
 		// Join session
-		mJoinButton.setEnabled(false);
+		mJoinButton.setEnabled( false);
 		showWaitingMessage();
 		mConferenceManager.joinSession();
 	}
 
-//	@Override
-//	protected Class<?> getLeftActivity() {
-//		return SettingsActivity.class;
-//	}
-
 	@Override
-	public synchronized void onResume() {
-		super.onResume();
-		Log.i(TAG, "onResume ->");
-		checkForCrashes(); //REMOVE_IN_BUNDLE
-
-		// Read settings
-		UserSettings settings = mConferenceManager.retrieveSettings();
-
-		try {
-			// Fill views
-			mSessionIdView.setText(settings.SessionID);
-			mDisplayNameView.setText(settings.DisplayName);
-
-			// reseting the resolution config
-			//settings.Resolution = CameraResolutionLevel.ResolutionHigh;
-			Log.i(TAG, "persistSettings ->");
-			mConferenceManager.persistSettings(settings);
-
-			Log.i(TAG, "<- persistSettings");
-
-			Log.i(TAG, "loadDataFromSettings ->");
-			mConferenceManager.loadDataFromSettings();
-			Log.i(TAG, "<- loadDataFromSettings");
-
-			mConferenceManager.removeSessionListener(this);
-			mConferenceManager.addSessionListener(this);
-
-			if (isInitialized) {
-
-	    		initPreview(mPreviewSurface);
-
-				mConferenceManager.resumePreviewSession();
-
-				mJoinButton.setEnabled(true);
-			}
-
-		} catch (Exception e) {
-			Log.e(TAG, "An Error occured while trying to select Devices");
-		}
-	}
-
-	@Override
-	public void onBackPressed() {
-		if (mConferenceManager != null)
-			mConferenceManager.leaveSession();
-		super.onBackPressed();
-	}
-
-	@Override
-	public void onPause() {
-		super.onPause();
-
-		// mModel.unregisterFromEvents();
-		if (isInitialized)
-			mConferenceManager.pauseSession();
-
-		mConferenceManager.removeSessionListener(this);
-
-		isInitialized = true;
-		saveSettings();
-	}
-
-	public synchronized void initPreview(ParticipantVideoSurface participantsVideoSurface) {
-
-		try {
-			mConferenceManager.setSessionUIPresenter(this);
-
-			ParticipantsManager mParticipantsManager = mConferenceManager.getParticipantsManager();
-
-			if (mRenderViewData == null)
-				mRenderViewData = mParticipantsManager.getHolder().addGLView(participantsVideoSurface.mVideoView.getId());
-			else
-				 mParticipantsManager.getHolder().updateGLPreview(participantsVideoSurface.mVideoView.getId(), mRenderViewData);
-
-		} catch (Exception e) {
-			Log.e(Utils.getOoVooTag(), "", e);
-		}
-	}
-
-	private void saveSettings() {
-		UserSettings settingsToPersist = mConferenceManager.retrieveSettings();
-		settingsToPersist.SessionID = mSessionIdView.getText().toString();
-		settingsToPersist.UserID = android.os.Build.SERIAL;
-		settingsToPersist.DisplayName = mDisplayNameView.getText().toString();
-
-		// Save changes
-		mConferenceManager.persistSettings(settingsToPersist);
-	};
-
-	private void switchToVideoCall() {
-		runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				hideWaitingMessage();
-				startActivity(VideoCallActivity.class);
-			}
-		});
-	}
-
-	private void showWaitingMessage() {
-		 mWaitingDialog = new ProgressDialog(this);
-			mWaitingDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-			mWaitingDialog.setMessage(getResources().getText(R.string.please_wait));
-			mWaitingDialog.setIndeterminate(true);
-			mWaitingDialog.setCancelable(false);
-			mWaitingDialog.setCanceledOnTouchOutside(false);
-			mWaitingDialog.show();
-	}
-
-	public void hideWaitingMessage() {
-		try {
-			if (mWaitingDialog != null) {
-				mWaitingDialog.dismiss();
-			}
-			mWaitingDialog = null;
-		} catch (Exception ex) {
-		}
-	}
-
-	// Start a new activity using the requested effects
-	private void startActivity(Class<?> activityToStart) {
-		// Maybe should use this flag just for Video Call activity?
-		Intent myIntent = new Intent(this, activityToStart);
-		myIntent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-		startActivity(myIntent);
-	}
-
-	public void showErrorMessage(final String titleToShow,
-			final String msgToShow) {
-		runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				mJoinButton.setEnabled(true);
-				hideWaitingMessage();
-				Utils.ShowMessageBox(MainActivity.this, titleToShow, msgToShow);
-			}
-		});
-	}
-
-	@Override
-	public void onSessionError(String error) {
-		showErrorMessage("Error", error);
+	public void onJoinSessionError( final ConferenceCoreError error)
+	{
+		Log.e( TAG, "onJoinSessionError: " + error);
 		isJoining = false;
+		showErrorMessage(
+				"Join Session",
+				"Error while trying to join session. "
+						+ mConferenceManager.getErrorMessageForConferenceCoreError( error));
 	}
 
 	@Override
-	public void onSessionIDGenerated(String sSessionId) {
-		Log.d(Utils.getOoVooTag(), "OnSessionIdGenerated called with: "
-				+ sSessionId);
-	}
-
-	@Override
-	public void onJoinSessionSucceeded() {
+	public void onJoinSessionSucceeded()
+	{
 		switchToVideoCall();
 		isJoining = false;
 	}
 
 	@Override
-	public void onJoinSessionError(final ConferenceCoreError error) {
-		Log.e(TAG, "onJoinSessionError: " + error);
+	public void onJoinSessionWrongDataError()
+	{
+		showErrorMessage( "Join Session", "Display Name should not be empty");
+	}
+
+	@Override
+	public void onLeftSession( ConferenceCoreError error)
+	{
+	}
+
+	@Override
+	public void onMultiModeChanged()
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public boolean onOptionsItemSelected( MenuItem item)
+	{
+		if( item == null)
+			return false;
+
+		switch( item.getItemId())
+		{
+		case R.id.menu_settings:
+			if( !isInitialized)
+			{
+				Toast.makeText( getApplicationContext(), R.string.initialization_wait, Toast.LENGTH_SHORT).show();
+			}
+
+			startActivity( SettingsActivity.class);
+
+			return true;
+		}
+		return super.onOptionsItemSelected( item);
+	}
+
+	@Override
+	public void onPause()
+	{
+		super.onPause();
+
+		if( isInitialized)
+			mConferenceManager.pauseSession();
+
+		mConferenceManager.removeSessionListener( this);
+
+		isInitialized = true;
+		saveSettings();
+	}
+
+	@Override
+	public synchronized void onResume()
+	{
+		Log.i( TAG, "main activity onResume ->");
+		mConferenceManager.addSessionListener( this);
+
+		// Read settings
+		UserSettings settings = mConferenceManager.retrieveSettings();
+
+		// Fill views
+		mSessionIdView.setText( settings.SessionID);
+		mDisplayNameView.setText( settings.DisplayName);
+
+		Log.i( TAG, "persistSettings ->");
+		mConferenceManager.persistSettings( settings);
+
+		Log.i( TAG, "<- persistSettings");
+
+		Log.i( TAG, "loadDataFromSettings ->");
+		mConferenceManager.loadDataFromSettings();
+		Log.i( TAG, "<- loadDataFromSettings");
+
+		mConferenceManager.setSessionUIPresenter( this);
+		mConferenceManager.updateGLView( mPreviewSurface.mVideoView.getId(), this);
+
+		showAvatar();
+
+		if( isInitialized)
+		{
+			mConferenceManager.resumePreviewSession();
+			mJoinButton.setEnabled( true);
+		}
+
+		mConferenceManager.setCameraMuted( false, true);
+		super.onResume();
+	}
+
+	@Override
+	public void onSessionError( String error)
+	{
+		showErrorMessage( "Error", error);
 		isJoining = false;
-		showErrorMessage("Join Session",
-				"Error while trying to join session. " + mConferenceManager.getErrorMessageForConferenceCoreError( error));
 	}
 
 	@Override
-	public void onJoinSessionWrongDataError() {
-		showErrorMessage("Join Session", "Display Name should not be empty");
+	public void onSessionIDGenerated( String sSessionId)
+	{
+		Log.d( Utils.getOoVooTag(), "OnSessionIdGenerated called with: " + sSessionId);
 	}
 
 	@Override
-	public void onLeftSession(ConferenceCoreError error) {
-	}
+	public synchronized void onSessionInited()
+	{
 
-	@Override
-	public synchronized void onSessionInited() {
+		runOnUiThread( new Runnable() {
+			@Override
+			public void run()
+			{
 
-		runOnUiThread(new Runnable() {
-	        @Override
-	        public void run() {
+				try
+				{
+					Log.i( TAG, "loadDataFromSettings ->");
+					mConferenceManager.loadDataFromSettings();
+					Log.i( TAG, "<- loadDataFromSettings");
 
-	        	try {
-	        		Log.i(TAG, "loadDataFromSettings ->");
-	    			mConferenceManager.loadDataFromSettings();
-	    			Log.i(TAG, "<- loadDataFromSettings");
-
-	        		initPreview(mPreviewSurface);
-
-	        		mConferenceManager.resumePreviewSession();
+					mConferenceManager.resumePreviewSession();
 
 					isInitialized = true;
-					mJoinButton.setEnabled(true);
+					if( mJoinButton != null)
+						mJoinButton.setEnabled( true);
 
-				} catch (Exception e) {
-					Log.e(TAG, "", e);
+				} catch( Exception e)
+				{
+					Log.e( TAG, "", e);
 				}
-	        }
+			}
 		});
 	}
 
-	@Override
-	public void updateParticipantSurface(final int participantViewId,
-			String displayName, final boolean isVideoOn) {
+	private void saveSettings()
+	{
+		if( mConferenceManager != null && mSessionIdView != null && mDisplayNameView != null)
+		{
+			UserSettings settingsToPersist = mConferenceManager.retrieveSettings();
+			settingsToPersist.SessionID = mSessionIdView.getText().toString();
+			settingsToPersist.UserID = android.os.Build.SERIAL;
+			settingsToPersist.DisplayName = mDisplayNameView.getText().toString();
 
-		runOnUiThread(new Runnable() {
+			// Save changes
+			mConferenceManager.persistSettings( settingsToPersist);
+		}
+	}
+
+	private void showAvatar()
+	{
+		if( mPreviewSurface != null)
+			mPreviewSurface.avatar.setVisibility( View.VISIBLE);
+	}
+
+	public void showErrorMessage( final String titleToShow, final String msgToShow)
+	{
+		runOnUiThread( new Runnable() {
 			@Override
-			public void run() {
-				hideAvatar();
+			public void run()
+			{
+				if( mJoinButton != null)
+					mJoinButton.setEnabled( true);
+				hideWaitingMessage();
+				Utils.ShowMessageBox( MainActivity.this, titleToShow, msgToShow);
+			}
+		});
+	}
+
+	private void showWaitingMessage()
+	{
+		mWaitingDialog = new ProgressDialog( this);
+		mWaitingDialog.setProgressStyle( ProgressDialog.STYLE_SPINNER);
+		mWaitingDialog.setMessage( getResources().getText( R.string.please_wait));
+		mWaitingDialog.setIndeterminate( true);
+		mWaitingDialog.setCancelable( false);
+		mWaitingDialog.setCanceledOnTouchOutside( false);
+		mWaitingDialog.show();
+	}
+
+	// Start a new activity using the requested effects
+	private void startActivity( Class<?> activityToStart)
+	{
+		// Maybe should use this flag just for Video Call activity?
+		Intent myIntent = new Intent( this, activityToStart);
+		myIntent.setFlags( Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+		startActivity( myIntent);
+	}
+
+	private void switchToVideoCall()
+	{
+		runOnUiThread( new Runnable() {
+			@Override
+			public void run()
+			{
+				hideWaitingMessage();
+				startActivity( VideoCallActivity.class);
 			}
 		});
 	}
 
 	@Override
-	public void initSurfaces() {
-		// TODO Auto-generated method stub
+	public void updateParticipantSurface( final int participantViewId, String displayName, final boolean isVideoOn)
+	{
 
+		runOnUiThread( new Runnable() {
+			@Override
+			public void run()
+			{
+				hideAvatar();
+			}
+		});
 	}
-
-	@Override
-	public void onFullModeChanged(int id) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onMultiModeChanged() {
-		// TODO Auto-generated method stub
-
-	}
-
-	private void checkForCrashes() { //REMOVE_IN_BUNDLE
-		   CrashManager.register(this, APP_ID); //REMOVE_IN_BUNDLE
-		 } //REMOVE_IN_BUNDLE
-
-		 private void checkForUpdates() { //REMOVE_IN_BUNDLE
-		   // Remove this for store builds! //REMOVE_IN_BUNDLE
-		   UpdateManager.register(this, APP_ID); //REMOVE_IN_BUNDLE
-		 } //REMOVE_IN_BUNDLE
 
 }
