@@ -1,6 +1,4 @@
-## Android-SDK-Sample for SDK v1.5
-
-=================
+# Android-SDK-Sample for SDK v2
 
 This is the basic Android Sample Application for the ooVoo SDK. It will let you create a conference and join other devices into your conference and test out all the features of the ooVoo SDK, including multi-party audio and video chat, in-call messaging and video filters.
 
@@ -15,6 +13,4 @@ Please visit [ooVoo SDK site](http://developer.oovoo.com) to register and obtain
 If you need help with the SDK or this app you can find us on [#ooVoo on freenode](http://webchat.freenode.net/?channels=%23oovoo&uio=OT10cnVlde), [@oovoodev on twitter](http://twitter.com/oovoodev) and email <sdk.support@oovoo.com>.
 
 ## Instructions
-After you have downloaded the SDK bundle, to authenticate, you can either pre-populate your credentials in **AndroidManifest.XML** (make sure to preserve all the slashes already in the file) with your AppID, Token, Back-end URL and ConferenceID or when **ooVooSample** is running, go into the app **Settings**, and put in your credentials.
-
-Most problems with authentication can be easily solved by killing the app and then checking your credentials in the file or copy/paste them into settings again and restart the app. 
+Please see the [Sample Application QuickStart Guide](https://github.com/oovoodev/Documentation/blob/master/Android%20Documentation/Sample%20Application%20Quickstart%20-%20Android.md) for documentation on how to gt up and running with either Android Studio or Eclipse.
