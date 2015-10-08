@@ -11,6 +11,7 @@
           android:showAsAction="ifRoom|withText" />
     
     <item android:id="@+id/menu_signal_strenth"
+          android:title=""
           android:showAsAction="ifRoom"/>
 
 </menu>

@@ -1,4 +1,4 @@
-# Android-SDK-Sample for SDK v2
+# Android-SDK-Sample for SDK v2.1
 
 This is the basic Android Sample Application for the ooVoo SDK. It will let you create a conference and join other devices into your conference and test out all the features of the ooVoo SDK, including multi-party audio and video chat, in-call messaging and video filters.
 

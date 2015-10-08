@@ -35,6 +35,33 @@
 			</EditText>
 		  
 		</TableRow>
+		<TableRow>
+
+			<TextView
+				android:layout_width="wrap_content"
+				android:text="@string/display_name_label"
+				android:textColor="@color/text_field_color"
+				android:layout_marginLeft="@dimen/main_margin"
+				android:gravity="center_vertical"
+				android:textAppearance="?android:attr/textAppearanceMedium">
+			</TextView>
+
+			<EditText
+				android:id="@+id/displayname_field"
+				android:layout_height="wrap_content"
+				android:layout_marginLeft="@dimen/main_margin"
+				android:layout_marginRight="@dimen/main_margin"
+				android:inputType="text"
+				android:singleLine="true"
+				android:layout_width="0dp"
+				android:layout_weight="1"
+				android:hint="@string/enter_display_name"
+				android:textColorHint="@color/hint_color"
+				android:textAppearance="?android:attr/textAppearanceMedium" >
+
+			</EditText>
+
+		</TableRow>
 		<TableRow 
 		    android:layout_marginTop="@dimen/main_margin"
 		    android:gravity="center">

@@ -1,5 +1,12 @@
 package com.oovoo.sdk.sample.app;
 
+import android.content.Context;
+import android.util.JsonReader;
+import android.util.JsonWriter;
+import android.util.Log;
+
+import com.oovoo.core.LoggerListener.LogLevel;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileInputStream;
@@ -8,13 +15,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.Enumeration;
 import java.util.Hashtable;
-
-import com.oovoo.core.LoggerListener.LogLevel;
-
-import android.content.Context;
-import android.util.JsonReader;
-import android.util.JsonWriter;
-import android.util.Log;
 
 public class ApplicationSettings extends Hashtable<String, String> {
 
@@ -26,10 +26,14 @@ public class ApplicationSettings extends Hashtable<String, String> {
 	public static final String	EffectId	          = "effect_id";
 	public static final String	CameraID	          = "camera_id";
 	public static final String	AvsSessionId	      = "avs_session_id";
+	public static final String	RandomAvsSessionId	  = "random_avs_session_id";
 	public static final String	AvsSessionDisplayName	= "avs_session_display_name";
+	public static final String	UseFixedAvs			  = "use_fixed_avs";
+	public static final String	AvsIp				  = "avs_ip";
 	public static final String	LogLevelKey			  = "log_level_key";
 	private static final long	serialVersionUID	  = 1L;
 	public static final String	TAG	                  = "ApplicationSettings";
+	public static final String 	PREVIEW_ID			  = "";
 	private Context	           appcontext	          = null;
 
 	public ApplicationSettings(Context appcontext) {

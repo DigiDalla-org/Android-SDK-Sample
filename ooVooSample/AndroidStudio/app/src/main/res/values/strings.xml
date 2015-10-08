@@ -1,6 +1,6 @@
 <resources>
 
-    <string name="app_name">ooVoo SDK Sample 2.0</string>
+    <string name="app_name">ooVoo SDK Sample 2.1</string>
 	<string name="username_label">Username:</string>
 	<string name="login_title">Log in</string>
 	<string name="conference_id_label">Conference ID:</string>
@@ -40,5 +40,23 @@
 	<string name="wrong_username_id">Username is not valid</string>
 	<string name="video_cannot_be_viewed">Video cannot be viewed!</string>
 	<string name="device_is_not_supported">Device is not supported!</string>
-	
+	<string name="start_call_title">Call</string>
+	<string name="call_receiver_label">Call receiver Id:</string>
+	<string name="enter_receiver_id">Enter receiver Id</string>
+	<string name="enter_call_receiver">Enter call receiver</string>
+	<string name="ok">Ok</string>
+	<string name="cancel">Cancel</string>
+	<string name="add_title">Add</string>
+	<string name="call_receivers">Call receivers:</string>
+	<string name="use_fixed_avs">Use fixed AVS</string>
+	<string name="invalid_ip">Please input a valid IP address!!</string>
+	<string name="input_ip_title">Input IP Address</string>
+	<string name="calling">Calling</string>
+	<string name="answer">Answer</string>
+	<string name="decline">Decline</string>
+	<string name="no_receivers">Please add or enable up to 4 receivers!</string>
+	<string name="room_title">Room</string>
+	<string name="make_call_title">Make call</string>
+	<string name="min_username_length">User name must contain 6 characters</string>
+
 </resources>

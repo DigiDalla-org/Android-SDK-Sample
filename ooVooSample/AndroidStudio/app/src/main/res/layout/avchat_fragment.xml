@@ -6,25 +6,17 @@
 	
 	<FrameLayout
 	    android:layout_width="fill_parent"
-	    android:layout_height="wrap_content"
+	    android:layout_height="fill_parent"
 	    android:layout_weight="1">
 	    
 	    <GridView
 			android:id="@+id/video_grid_view"
-			android:layout_width="match_parent"
-	        android:layout_height="wrap_content"
+			android:layout_width="fill_parent"
+	        android:layout_height="fill_parent"
 			android:padding="@dimen/grid_item_padding"
 	        android:stretchMode="columnWidth"
 	        android:clipChildren="true"
 	        android:numColumns="2"/>
-	        
-		<com.oovoo.sdk.api.ui.VideoPanel
-		    android:id="@+id/full_screen_video_panel_preview"
-		    android:layout_width="match_parent"
-	        android:layout_height="match_parent"
-	        android:padding="4dip"
-	        android:visibility="gone">
-		</com.oovoo.sdk.api.ui.VideoPanel>
 		
 		<com.oovoo.sdk.api.ui.VideoPanel
 		    android:id="@+id/full_screen_video_panel_remoteview"

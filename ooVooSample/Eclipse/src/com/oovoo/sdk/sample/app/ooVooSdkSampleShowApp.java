@@ -1,5 +1,7 @@
 package com.oovoo.sdk.sample.app;
 
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Application;
 import android.content.Context;
 import android.content.res.Configuration;
@@ -9,12 +11,16 @@ import android.net.NetworkInfo;
 import android.os.Handler;
 import android.util.Log;
 import android.view.Display;
-import android.view.Surface;
+import android.view.Gravity;
 import android.view.WindowManager;
+import android.widget.TextView;
 
 import com.oovoo.core.LoggerListener;
 import com.oovoo.core.Utils.LogSdk;
+import com.oovoo.core.media.ooVooCamera;
 import com.oovoo.core.sdk_error;
+import com.oovoo.sdk.api.GLPerformanceUtils;
+
 import com.oovoo.sdk.api.ooVooClient;
 import com.oovoo.sdk.api.ui.VideoPanel;
 import com.oovoo.sdk.interfaces.AVChatListener;
@@ -23,26 +29,34 @@ import com.oovoo.sdk.interfaces.AudioRoute;
 import com.oovoo.sdk.interfaces.AudioRouteController;
 import com.oovoo.sdk.interfaces.Effect;
 import com.oovoo.sdk.interfaces.Participant;
+import com.oovoo.sdk.interfaces.VideoController;
 import com.oovoo.sdk.interfaces.VideoController.ResolutionLevel;
 import com.oovoo.sdk.interfaces.VideoControllerListener;
 import com.oovoo.sdk.interfaces.VideoDevice;
 import com.oovoo.sdk.interfaces.ooVooSdkResult;
 import com.oovoo.sdk.interfaces.ooVooSdkResultListener;
-//import com.oovoo.sdk.plugin.ooVooPluginFactory ;
 
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
+
+//import com.oovoo.sdk.plugins.yap.PerfVerifier;
+//import com.oovoo.sdk.plugin.ooVooPluginFactory ;
+//import com.oovoo.sdk.plugins.yap.YapFactory;
 
 public class ooVooSdkSampleShowApp extends Application implements VideoControllerListener, LoggerListener,
 AVChatListener, AudioControllerListener
 {
 	public static final String	TAG	= "ooVooSdkSampleShowApp";
 
+
+
 	public enum Operation
 	{
-		Authorized, LoggedIn, Processing, AVChatJoined, AVChatDisconnected, Error,NoToken ;
+		Authorized, LoggedIn, Processing, AVChatJoined,  AVChatDirectJoined, AVChatDisconnected, Error ;
 		private String		description		= "";
 		private Operation	forOperation	= null;
 
@@ -75,15 +89,13 @@ AVChatListener, AudioControllerListener
 	private Operation							state						= null;
 	private boolean								m_iscameraopened			= false;
 	private boolean								m_previewopened				= false;
+	private boolean								m_isaudioinited				= false;
 	private ArrayList<ParticipantsListener>		m_participantListeners		= new ArrayList<ParticipantsListener>();
 	private Hashtable<String, String>			participants				= new Hashtable<String, String>();
 	private ApplicationSettings					settings					= null;
 	private CallControllerListener				controllerListener			= null;
 	private NetworkReliabilityListener			networkReliabilityListener	= null;
-
-
-
-
+	private Map<String, Boolean> 				muted 						= new HashMap<String, Boolean>();
 
 	@Override
 	public void onCreate()
@@ -91,7 +103,6 @@ AVChatListener, AudioControllerListener
 		super.onCreate();
 		try
 		{
-
 			Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 				public void uncaughtException(Thread t, Throwable e) {
 					LogSdk.e(TAG,"UncaughtExceptionHandler threade = "+t+", error "+e);
@@ -102,25 +113,21 @@ AVChatListener, AudioControllerListener
 				return;
 			}
 
-
-
-			
 			settings = new ApplicationSettings( this);
 
 			ooVooClient.setLogger(this, LogLevel.fromString(getSettings().get(ApplicationSettings.LogLevelKey)));
 			ooVooClient.setContext( this);
 			sdk = ooVooClient.sharedInstance();
-			sdk.enableMessaging(false) ;
 			sdk.getAVChat().setListener( this);
 			sdk.getAVChat().getVideoController().setListener( this);
 			sdk.getAVChat().getAudioController().setListener(this);
 			sdk.getAVChat().setSslVerifyPeer(true);
-			// sdk.getAVChat().registerPlugin(new ooVooPluginFactory());
+
+//			sdk.getAVChat().registerPlugin(new ooVooPluginFactory());			
+//			sdk.getAVChat().registerPlugin(new YapFactory("/storage/sdcard0/model"));
 
 			AudioRouteController audioController = sdk.getAVChat().getAudioController().getAudioRouteController();
 			LogSdk.d( TAG, "Audio controller " + audioController);
-
-
 
 		} catch( Exception e)
 		{
@@ -129,8 +136,6 @@ AVChatListener, AudioControllerListener
 		}
 		operation_handler = new Handler();
 	}
-
-
 
 	public ApplicationSettings getSettings()
 	{
@@ -160,27 +165,27 @@ AVChatListener, AudioControllerListener
 
 	protected synchronized void fireApplicationStateEvent( final Operation state)
 	{
-		fireApplicationStateEvent( state, 0);
+		fireApplicationStateEvent(state, 0);
 	}
 
 	protected synchronized void fireApplicationStateEvent( final Operation state, String description)
 	{
 		state.setDescription( description);
-		fireApplicationStateEvent( state, 0);
+		fireApplicationStateEvent(state, 0);
 	}
 
 	protected synchronized void fireApplicationStateEvent( final Operation state, Operation forOperation,
 			String description)
 	{
 		state.setForOperation( forOperation);
-		state.setDescription( description);
-		fireApplicationStateEvent( state, 0);
+		state.setDescription(description);
+		fireApplicationStateEvent(state, 0);
 	}
 
 	protected synchronized void fireApplicationStateEvent( final Operation state, String description, long delayMillis)
 	{
 		state.setDescription( description);
-		fireApplicationStateEvent( state, delayMillis);
+		fireApplicationStateEvent(state, delayMillis);
 	}
 
 	protected synchronized void fireApplicationStateEvent( final Operation state, final Runnable excecuteAfter)
@@ -238,7 +243,7 @@ AVChatListener, AudioControllerListener
 
 	public void reautorize()
 	{
-		fireApplicationStateEvent( Operation.Processing, "Authorizing");
+		fireApplicationStateEvent(Operation.Processing, "Authorizing");
 		autorize();
 	}
 
@@ -277,11 +282,13 @@ AVChatListener, AudioControllerListener
 		public void onOperationChange( Operation state);
 	}
 
-	public synchronized void login( final String username)
+	public synchronized void login(final String username, String displayName)
 	{
 		m_iscameraopened = false;
 		m_previewopened = false;
 		fireApplicationStateEvent( Operation.Processing, "Log in");
+
+		settings.put(ApplicationSettings.AvsSessionDisplayName, displayName);
 
 		sdk.getAccount().login(username, new ooVooSdkResultListener() {
 			@Override
@@ -299,7 +306,10 @@ AVChatListener, AudioControllerListener
 		});
 	}
 
-
+	public void startTransmit()
+	{
+		sdk.getAVChat().getVideoController().startTransmit();
+	}
 
 	public synchronized void openPreview()
 	{
@@ -324,15 +334,18 @@ AVChatListener, AudioControllerListener
 	}
 
 	@Override
-	public void onCameraStateChanged( boolean is_opened, String deviceId,int width,int height, int fps ,sdk_error error)
+	public void onCameraStateChanged( ooVooCamera.ooVooCameraState state, String deviceId, int width, int height,
+                                      int fps, sdk_error error)
 	{
-		LogSdk.d(TAG, "ooVooCamera ->onCameraStateChanged [is_opened = " + is_opened + ". error = " + error + ", size = " + width + "x" + height + "]");
-		if( is_opened)
+		LogSdk.d(TAG, "ooVooCamera -> onCameraStateChanged [state = " + state + ". error = " + error + ", size = " +
+				width + "x" + height + "]");
+		if( state == ooVooCamera.ooVooCameraState.CameraOpened)
 		{
 			sdk.getAVChat().getVideoController().openPreview();
 			m_iscameraopened = true;
 		}
-		else{
+		else if(state == ooVooCamera.ooVooCameraState.CameraClosed)
+		{
 			sdk.getAVChat().getVideoController().closePreview();
 			m_iscameraopened = false;
 		}
@@ -343,8 +356,23 @@ AVChatListener, AudioControllerListener
 	@Override
 	public void onRemoteVideoStateChanged( String uid, RemoteVideoState state,int width,int height, sdk_error error)
 	{
-
 		LogSdk.d(TAG, "ooVooCamera ->onRemoteVideoStateChanged [uid = " + uid + ". RemoteVideoState = " + state + "]");
+		switch (state) {
+			case RVS_Started:
+			case RVS_Resumed:
+
+				muted.put(uid, false);
+				break;
+			case RVS_Stopped:
+
+				muted.put(uid, true);
+				break;
+			case RVS_Paused:
+
+				muted.put(uid, true);
+				break;
+		}
+
 		if( m_participantListeners.size() > 0)
 		{
 			Iterator<ParticipantsListener> iter = m_participantListeners.iterator();
@@ -371,7 +399,7 @@ AVChatListener, AudioControllerListener
 	@Override
 	public void onVideoPreviewStateChanged( boolean arg0, sdk_error arg1)
 	{
-		LogSdk.d( TAG, "ooVooCamera ->onVideoPreviewStateChanged [is_opened = " + arg0 + ". error = " + arg1 + "]");
+		LogSdk.d(TAG, "ooVooCamera ->onVideoPreviewStateChanged [is_opened = " + arg0 + ". error = " + arg1 + "]");
 		m_previewopened = arg0;
 
 	}
@@ -440,7 +468,7 @@ AVChatListener, AudioControllerListener
 
 	public void bindVideoPanel( String id, VideoPanel video)
 	{
-		if( id == null)
+		if (id.isEmpty())
 		{
 			bindPreviewPanel(video);
 
@@ -454,12 +482,12 @@ AVChatListener, AudioControllerListener
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		sdk.getAVChat().getVideoController().registerRemote( id);
+		sdk.getAVChat().getVideoController().registerRemote(id);
 	}
 
 	public void unbindVideoPanel( String id, VideoPanel video)
 	{
-		if( id == null)
+		if (id.isEmpty())
 		{
 			unbindPreviewPanel();
 			return;
@@ -475,17 +503,37 @@ AVChatListener, AudioControllerListener
 		}
 	}
 
-	public void join( final String session_id, final String displayname)
+	public void registerRemote(String id) {
+		sdk.getAVChat().getVideoController().registerRemote(id);
+	}
+
+	public void unregisterRemote(String id) {
+		sdk.getAVChat().getVideoController().unregisterRemote(id);
+	}
+
+	public void join(final String session_id)
+	{
+
+
+		settings.put(ApplicationSettings.AvsSessionId, session_id);
+
+		participants.clear();
+		
+		fireApplicationStateEvent(Operation.Processing, Operation.AVChatJoined, "Joining");
+	}
+
+	public void directJoin( final String session_id, final String avs_ip)
 	{
 
 		participants.clear();
 
 		settings.put( ApplicationSettings.AvsSessionId, session_id);
-		settings.put( ApplicationSettings.AvsSessionDisplayName, displayname);
+		settings.put(ApplicationSettings.AvsIp, avs_ip);
 
-		fireApplicationStateEvent(Operation.Processing, Operation.AVChatJoined, "Joining");
-
+		fireApplicationStateEvent(Operation.Processing, Operation.AVChatDirectJoined, "Joining");
 	}
+
+
 
 	public void onProcessingStarted()
 	{
@@ -494,34 +542,28 @@ AVChatListener, AudioControllerListener
 			switch( Operation.Processing.forOperation())
 			{
 			case AVChatJoined:
+
 			{
 				final String session_id = settings.get( ApplicationSettings.AvsSessionId);
 				final String session_dn = settings.get( ApplicationSettings.AvsSessionDisplayName);
 
-				LogSdk.d(TAG, "Application - > onProcessingStarted start join conference id = " + session_id + ", display name = " + session_dn);
-
-				sdk.updateConfig(new ooVooSdkResultListener() {
+				sdk.getAVChat().getAudioController().initAudio(new ooVooSdkResultListener() {
 					@Override
-					public void onResult(ooVooSdkResult result) {
-						LogSdk.d(TAG, "Application - > updateConfig result = " +result);
-						if(result.getResult() == sdk_error.OK) {
-							sdk.getAVChat().getAudioController().initAudio(new ooVooSdkResultListener() {
-								@Override
-								public void onResult(ooVooSdkResult init_audio_result) {
-									LogSdk.d(TAG, "Application - > init audio completion " + init_audio_result);
-									sdk.getAVChat().join(session_id, session_dn);
-
-								}
-							});
+					public void onResult(ooVooSdkResult init_audio_result) {
+						LogSdk.d(TAG, "Application - > init audio completion " + init_audio_result);
+						if (init_audio_result.getResult() == sdk_error.OK) {
+							m_isaudioinited = true;
 						}
 					}
 				});
 
+				LogSdk.d(TAG, "Application - > onProcessingStarted start join conference id = " + session_id + ", display name = " + session_dn);
 
-
-
+				sdk.getAVChat().join(session_id, session_dn);
 			}
 				break;
+
+
 			default:
 				break;
 			}
@@ -541,19 +583,16 @@ AVChatListener, AudioControllerListener
 		LogSdk.d(TAG, "Application - > onConferenceStateChanged " + avchat_state + ", error " + error);
 		if( avchat_state == ConferenceState.Joined && error == sdk_error.OK)
 		{
+			
 			settings.save();
 			fireApplicationStateEvent(Operation.AVChatJoined);
 
 		} else if (avchat_state == ConferenceState.Joined && error != sdk_error.OK)
 		{
-			fireApplicationStateEvent( Operation.Error, Operation.AVChatJoined, "AVChat error");
+			fireApplicationStateEvent( Operation.Error, Operation.AVChatJoined, sdk_error.getErrorString(error));
 
 		}
 		else if( avchat_state == ConferenceState.Disconnected) {
-
-			unbindPreviewPanel();
-			m_iscameraopened = false;
-			m_previewopened = false;
 			fireApplicationStateEvent( Operation.AVChatDisconnected);
 		}
 
@@ -561,20 +600,21 @@ AVChatListener, AudioControllerListener
 
 	@Override
 	public void onParticipantJoined(Participant participant, String displayName) {
-			if( m_participantListeners.size() > 0)
-			{
-				Iterator<ParticipantsListener> iter = m_participantListeners.iterator();
-				while(iter.hasNext()){
-					ParticipantsListener listener = iter.next();
-					listener.onParticipantJoined(participant.getID(), displayName);
-					LogSdk.d(TAG, "Application - > onParticipantJoined " + participant.getID() + ", "
-							+ displayName + ", m_participantListener = " + listener);
-				}
+		muted.put(participant.getID(), false);
+		if( m_participantListeners.size() > 0)
+		{
+			Iterator<ParticipantsListener> iter = m_participantListeners.iterator();
+			while(iter.hasNext()){
+				ParticipantsListener listener = iter.next();
+				listener.onParticipantJoined(participant.getID(), displayName);
+				LogSdk.d(TAG, "Application - > onParticipantJoined " + participant.getID() + ", "
+						+ displayName + ", m_participantListener = " + listener);
 			}
-			synchronized( participants)
-			{
-				participants.put(participant.getID(), displayName);
-			}
+		}
+		synchronized( participants)
+		{
+			participants.put(participant.getID(), displayName);
+		}
 
 	}
 
@@ -593,13 +633,49 @@ AVChatListener, AudioControllerListener
 		synchronized( participants)
 		{
 			participants.remove(participant.getID());
+			muted.remove(participant.getID());
 		}
 	}
 
 	@Override
 	public void onReceiveData( String arg0, byte[] arg1)
 	{
-		LogSdk.d( TAG, "Application - > onReceiveData " + arg0 + ", " + arg1);
+		LogSdk.d(TAG, "Application - > onReceiveData " + arg0 + ", " + arg1);
+
+	}
+
+	public void checkGL() {
+		(new Thread(){
+			public void run(){
+				try
+				{
+					LogSdk.d(TAG, "Application - > checkGL -> ");
+					long value_vga = GLPerformanceUtils.getPerfValue(GLPerformanceUtils.VGA_PERFORMANCE);
+					LogSdk.d(TAG, "Application - > checkGL vga = "+value_vga);
+					if(value_vga > GLPerformanceUtils.getEnableThreshold())
+					{
+						long value_cif = GLPerformanceUtils.getPerfValue(GLPerformanceUtils.CIF_PERFORMANCE);
+						LogSdk.d(TAG, "Application - > checkGL cif = "+value_cif);
+						if(value_cif > GLPerformanceUtils.getEnableThreshold())
+						{
+							LogSdk.d(TAG, "enable none");
+						}
+						else
+						{
+							LogSdk.d(TAG, "enable cif only");
+						}
+					}
+					else
+					{
+						LogSdk.d(TAG, "enable cif and vga");
+					}
+					LogSdk.d(TAG, "Application <- checkGL <-");
+				}
+				catch(Exception err){
+					LogSdk.e(TAG, "Application - > checkGL "+err);
+				}
+			}
+		}).start();
 
 	}
 
@@ -700,6 +776,17 @@ AVChatListener, AudioControllerListener
 		sdk.getAVChat().getVideoController().setActiveDevice((VideoDevice) camera);
 	}
 
+	public void selectCamera(String name)
+	{
+		ArrayList<VideoDevice> cameras = getVideoCameras();
+		for (VideoDevice camera : cameras) {
+			if (camera.toString().equals(name) && !getActiveCamera().getID().equalsIgnoreCase(camera.getID())) {
+				switchCamera(camera);
+				break;
+			}
+		}
+	}
+
 	public VideoDevice getActiveCamera()
 	{
 		return sdk.getAVChat().getVideoController().getActiveDevice();
@@ -720,12 +807,23 @@ AVChatListener, AudioControllerListener
 		return sdk.getAVChat().getVideoController().getDeviceList();
 	}
 
-	public void onEndOPfCall()
+	public void onEndOfCall()
 	{
-		unbindPreviewPanel();
-		m_iscameraopened = false;
-		m_previewopened = false;
+		selectVideoEffect("original");
+		changeResolution(VideoController.ResolutionLevel.ResolutionLevelMed);
+		releaseAVChat();
 		sdk.getAVChat().leave();
+		if (m_isaudioinited) {
+			sdk.getAVChat().getAudioController().uninitAudio(new ooVooSdkResultListener() {
+				@Override
+				public void onResult(ooVooSdkResult uninit_audio_result) {
+					LogSdk.d(TAG, "uninitAudio, result = " + uninit_audio_result.getResult());
+					if (uninit_audio_result.getResult() == sdk_error.OK) {
+						m_isaudioinited = false;
+					}
+				}
+			});
+		}
 	}
 
 	public static interface CallControllerListener
@@ -738,14 +836,22 @@ AVChatListener, AudioControllerListener
 		this.controllerListener = controllerListener;
 	}
 
+	public void setMicMuted(boolean muted) {
+		sdk.getAVChat().getAudioController().setRecordMuted(muted);
+	}
+
 	public boolean isMicMuted()
 	{
 		return sdk.getAVChat().getAudioController().isRecordMuted();
 	}
 
+	public void setSpeakerMuted(boolean muted)
+	{
+		sdk.getAVChat().getAudioController().setPlaybackMuted(muted);
+	}
+
 	public boolean isSpeakerMuted()
 	{
-
 		return sdk.getAVChat().getAudioController().isPlaybackMuted();
 	}
 
@@ -816,14 +922,29 @@ AVChatListener, AudioControllerListener
 		}
 	}
 
+	public ResolutionLevel getActiveResolution()
+	{
+		return sdk.getAVChat().getVideoController().getActiveResolution();
+	}
+
 	public void changeVideoEffect( Effect effect)
 	{
 		try
 		{
-			sdk.getAVChat().getVideoController().setActiveEffect( effect);
+			sdk.getAVChat().getVideoController().setActiveEffect(effect);
 		} catch( Exception err)
 		{
 			err.printStackTrace();
+		}
+	}
+
+	public void selectVideoEffect(String name) {
+		ArrayList<Effect> effects = getVideoFilters();
+		for (Effect effect : effects) {
+			if (effect.getName().equalsIgnoreCase(name)) {
+				changeVideoEffect(effect);
+				break;
+			}
 		}
 	}
 
@@ -838,8 +959,13 @@ AVChatListener, AudioControllerListener
 		}
 	}
 
+	public ArrayList<ResolutionLevel> getAvailableResolutions()
+	{
+		return sdk.getAVChat().getAvailableResolutions();
+	}
+
 	@Override
-	public void onNetworkReliability( int level)
+	public void onNetworkReliability(int level)
 	{
 		LogSdk.d(TAG, "onNetworkReliability level = " + level + "networkReliabilityListener = " + (networkReliabilityListener == null ? "null" : "OK"));
 		if( networkReliabilityListener != null)
@@ -854,9 +980,8 @@ AVChatListener, AudioControllerListener
 		try
 		{
 			unbindPreviewPanel();
-			m_iscameraopened = false;
-			m_previewopened = false;
 			sdk.getAVChat().getVideoController().closeCamera();
+			sdk.getAVChat().getVideoController().stopTransmit();
 		} catch( Exception err)
 		{
 			err.printStackTrace();
@@ -900,16 +1025,7 @@ AVChatListener, AudioControllerListener
 
 	public int getDeviceDefaultOrientation() {
 
-		WindowManager windowManager =  (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-
-		Configuration config = getResources().getConfiguration();
-
-		int rotation = windowManager.getDefaultDisplay().getRotation();
-
-		if ( ((rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180) &&
-				config.orientation == Configuration.ORIENTATION_LANDSCAPE)
-				|| ((rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) &&
-				config.orientation == Configuration.ORIENTATION_PORTRAIT)) {
+		if(ooVooClient.isTablet()){
 			return Configuration.ORIENTATION_LANDSCAPE;
 		} else {
 			return Configuration.ORIENTATION_PORTRAIT;
@@ -926,5 +1042,32 @@ AVChatListener, AudioControllerListener
 	
 	public void setLogLevel(String logLevel) {
 		ooVooClient.setLogLevel(LogLevel.fromString(logLevel));
+	}
+
+
+	public boolean leave()
+	{
+		onEndOfCall();
+		return true;
+	}
+
+	public void showErrorMessageBox(Activity activity, String title, String msg)
+	{
+		try {
+			AlertDialog.Builder popupBuilder = new AlertDialog.Builder(activity);
+			TextView myMsg = new TextView(activity);
+			myMsg.setText(msg);
+			myMsg.setGravity(Gravity.CENTER);
+			popupBuilder.setTitle(title);
+			popupBuilder.setPositiveButton("OK", null);
+			popupBuilder.setView(myMsg);
+
+			popupBuilder.show();
+		} catch( Exception e) {
+		}
+	}
+
+	public Map<String, Boolean> getMuted() {
+		return muted;
 	}
 }

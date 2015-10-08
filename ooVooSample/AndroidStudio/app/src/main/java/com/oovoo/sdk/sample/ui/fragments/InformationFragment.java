@@ -1,12 +1,6 @@
 package com.oovoo.sdk.sample.ui.fragments;
 
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.List;
-
 import android.os.Bundle;
-import android.view.InflateException;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,12 +11,17 @@ import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.TextView;
 
-import com.oovoo.core.sdk_error;
 import com.oovoo.core.Utils.LogSdk;
+import com.oovoo.core.sdk_error;
 import com.oovoo.sdk.interfaces.VideoControllerListener.RemoteVideoState;
 import com.oovoo.sdk.oovoosdksampleshow.R;
 import com.oovoo.sdk.sample.app.ApplicationSettings;
 import com.oovoo.sdk.sample.app.ooVooSdkSampleShowApp.ParticipantsListener;
+
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.List;
 
 public class InformationFragment extends BaseFragment implements ParticipantsListener {
 
@@ -57,8 +56,7 @@ public class InformationFragment extends BaseFragment implements ParticipantsLis
 	    participantsList.setDivider(null);
 	    participantsList.setDividerHeight(0);
 	    participantsList.setAdapter(participantAdapter);
-	    
-	    app().addParticipantListener(this);
+		app().addParticipantListener(this);
 		view.setKeepScreenOn(true);
 		return view;
 	}
@@ -68,7 +66,7 @@ public class InformationFragment extends BaseFragment implements ParticipantsLis
 		app().removeParticipantListener(this);
 		super.onDestroy();
 	}
-	
+
 	private class ParticipantAdapter extends BaseAdapter
 	{
 		private final List<Participant>	participants = new ArrayList<Participant>();
@@ -154,12 +152,8 @@ public class InformationFragment extends BaseFragment implements ParticipantsLis
 					viewHolder.muteSwitch = (Switch) view.findViewById(R.id.mute_switch);
 					
 					view.setTag(viewHolder);
-				} 
-				catch( InflateException e)
-				{
-					LogSdk.e(TAG, "getView Inflate exception.", e);
-				} 
-				catch( NullPointerException e)
+				}
+				catch(Exception e)
 				{
 					LogSdk.e(TAG, "getView Inflate exception.", e);
 				}
@@ -172,22 +166,23 @@ public class InformationFragment extends BaseFragment implements ParticipantsLis
 			if (viewHolder != null && view != null)
 			{
 				final Participant participant = participants.get(index);
-				boolean isMuted = ((AVChatSessionFragment)getBackFragment()).isMuted(participant.getUserId());
+				boolean isMuted = app().getMuted().get(participant.getUserId()) == null ? false :
+						app().getMuted().get(participant.getUserId());
 				viewHolder.textView.setText(participant.getDisplayName());
+				viewHolder.muteSwitch.setOnCheckedChangeListener(null);
 				viewHolder.muteSwitch.setChecked(!isMuted);
-				viewHolder.muteSwitch.setOnCheckedChangeListener(new OnCheckedChangeListener(){
-
+				viewHolder.muteSwitch.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 					@Override
 					public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-						if(!isChecked){
-							((AVChatSessionFragment)getBackFragment()).muteVideo(participant.getUserId());
+						if (!isChecked) {
+							app().unregisterRemote(participant.getUserId());
+							((AVChatSessionFragment) getBackFragment()).muteVideo(participant.getUserId());
+							app().getMuted().put(participant.getUserId(), true);
+						} else {
+							app().registerRemote(participant.getUserId());
+							((AVChatSessionFragment) getBackFragment()).unmuteVideo(participant.getUserId());
 						}
-						else{
-							((AVChatSessionFragment)getBackFragment()).unmuteVideo(participant.getUserId());
-						}		
-						
 					}
-					
 				});
 			}
 			
@@ -198,20 +193,17 @@ public class InformationFragment extends BaseFragment implements ParticipantsLis
 	@Override
 	public void onParticipantJoined(String userId, String userData) {
 		participantAdapter.addItem(participantAdapter.new Participant(userId, userData));
-		
 	}
 
 	@Override
 	public void onParticipantLeft(String userId) {
 		participantAdapter.removeItem(userId);
-		
 	}
 
 	@Override
 	public void onRemoteVideoStateChanged(String userId,
 			RemoteVideoState state, sdk_error error) {
-		// TODO Auto-generated method stub
-		
+		participantAdapter.notifyDataSetChanged();
 	}
 
 	@Override

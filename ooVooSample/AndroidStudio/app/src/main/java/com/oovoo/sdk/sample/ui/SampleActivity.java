@@ -2,6 +2,7 @@ package com.oovoo.sdk.sample.ui;
 
  
  
+
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
@@ -34,7 +35,8 @@ import com.oovoo.sdk.sample.ui.fragments.WaitingFragment;
 public class SampleActivity extends Activity implements OperationChangeListener {
 
  
-	private static final String	  	TAG	           	= "HostActivity";
+	private static final String	  	TAG	           	= SampleActivity.class.getSimpleName();
+	private static final String 	STATE_FRAGMENT 	= "current_fragment";
 	private BaseFragment	      	current_fragment	= null;
 	private ooVooSdkSampleShowApp	application	   = null;
 	private MenuItem 				mSettingsMenuItem = null;
@@ -42,6 +44,7 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 	private MenuItem 				mSignalStrengthMenuItem = null;
 	private boolean					mIsAlive = false;
 	private boolean					mNeedShowFragment = false;
+
 
 
  
@@ -69,24 +72,45 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 		setContentView(R.layout.host_activity);
 
 		application.addOperationChangeListener(this);
-		if (savedInstanceState == null) {
+
+		if (savedInstanceState != null) {
+			current_fragment = (BaseFragment)getFragmentManager().getFragment(savedInstanceState, STATE_FRAGMENT);
+			showFragment(current_fragment);
+		} else {
 			Fragment newFragment = new FlashScreen();
 			FragmentTransaction ft = getFragmentManager().beginTransaction();
 			ft.add(R.id.host_activity, newFragment).commit();
-		}
 
-		if (!ooVooClient.isDeviceSupported()) {
-			return;
-		}
+			if (!ooVooClient.isDeviceSupported()) {
+				return;
+			}
 
-		try {
+			try {
  
-			application.onMainActivityCreated();
-		} catch( Exception e) {
-			Log.e( TAG, "onCreate exception: ", e);
+				application.onMainActivityCreated();
+			} catch( Exception e) {
+				Log.e( TAG, "onCreate exception: ", e);
+			}
 		}
 	}
 
+	@Override
+	public void onSaveInstanceState(Bundle savedInstanceState) {
+		try {
+			getFragmentManager().putFragment(savedInstanceState, STATE_FRAGMENT, current_fragment);
+		} catch( Exception e) {
+			Log.e( TAG, "onSaveInstanceState exception: ", e);
+		}
+		super.onSaveInstanceState(savedInstanceState);
+	}
+	
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		application.removeOperationChangeListener(this);
+	}
+
+	@Override
 	public void onResume() {
 		super.onResume();
 
@@ -131,7 +155,6 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 		inflater.inflate( R.menu.main_menu, menu);
 
 		mSettingsMenuItem = menu.findItem(R.id.menu_settings);
-		mSettingsMenuItem.setVisible(false);
 
 		mInformationMenuItem = menu.findItem(R.id.menu_information);
 		mInformationMenuItem.setVisible(false);
@@ -196,6 +219,8 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 					current_fragment = LoginFragment.newInstance(state.getDescription());
 					break;
 				case AVChatJoined:
+				case AVChatDirectJoined:
+					application.showErrorMessageBox(this, getString(R.string.join_session), state.getDescription());
 					current_fragment = AVChatLoginFragment.newInstance(mSettingsMenuItem);
 					break;
 				default:
@@ -207,10 +232,11 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 				current_fragment = WaitingFragment.newInstance(state.getDescription());
 				break;
 			case AVChatJoined:
+			case AVChatDirectJoined:
 				current_fragment = AVChatSessionFragment.newInstance(mSignalStrengthMenuItem, mInformationMenuItem);
 				break;
 			case Authorized:
-				current_fragment = new LoginFragment();
+				current_fragment = LoginFragment.newInstance();
 				break;
 			case AVChatDisconnected:
 			case LoggedIn:
@@ -309,7 +335,7 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 		try {
 			if (current_fragment != null) {
 
-				if((current_fragment instanceof WaitingFragment) || !current_fragment.onBackPressed()){
+				if(/*(current_fragment instanceof WaitingFragment) ||*/ !current_fragment.onBackPressed()){
 					return ;
 				}
 
@@ -341,5 +367,4 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 		}
 		super.onBackPressed();
 	}
-
 }

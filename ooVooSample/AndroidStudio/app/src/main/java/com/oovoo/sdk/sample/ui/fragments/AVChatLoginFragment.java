@@ -1,7 +1,5 @@
 package com.oovoo.sdk.sample.ui.fragments;
 
-import java.util.ArrayList;
-
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.res.Configuration;
@@ -20,18 +18,15 @@ import android.widget.Toast;
 
 import com.oovoo.core.Utils.LogSdk;
 import com.oovoo.sdk.api.ui.VideoPanel;
-import com.oovoo.sdk.interfaces.Effect;
 import com.oovoo.sdk.interfaces.VideoController;
-import com.oovoo.sdk.interfaces.VideoDevice;
 import com.oovoo.sdk.oovoosdksampleshow.R;
+import com.oovoo.sdk.sample.app.ApplicationSettings;
 import com.oovoo.sdk.sample.ui.VideoPanelPreviewRect;
 
 public class AVChatLoginFragment extends BaseFragment {
 	private static final int CONFERENCE_ID_LIMIT = 200;
-	private static final int DISPLAY_NAME_LIMIT = 100; 
-	private static final String TAG = "AVChatLoginFragment" ;
+	private static final String TAG = AVChatLoginFragment.class.getSimpleName();
 	private EditText	sessionIdEditText	= null;
-	private EditText	displayNameEditText	= null;
 	private MenuItem 	settingsMenuItem = null;
 	private VideoPanelPreviewRect previewRect = null;
 
@@ -50,15 +45,18 @@ public class AVChatLoginFragment extends BaseFragment {
 	@Override
     public void onResume() {
 	    super.onResume();
-		if(settingsMenuItem  != null)
-	    	settingsMenuItem.setVisible(true);
+		getActivity().getWindow().setBackgroundDrawableResource(R.drawable.slqsm);
+		if (settingsMenuItem != null) {
+			settingsMenuItem.setVisible(true);
+		}
     }
 	
 	@Override
     public void onPause() {
         super.onPause();
-		if(settingsMenuItem  != null)
-        	settingsMenuItem.setVisible(false);
+		if (settingsMenuItem != null) {
+			settingsMenuItem.setVisible(false);
+		}
 	}
 	
 	@Override
@@ -82,34 +80,12 @@ public class AVChatLoginFragment extends BaseFragment {
 			Configuration config = getResources().getConfiguration();
 			updatePreviewLayout(config);
 		}
-
-		ArrayList<VideoDevice> cameras = app().getVideoCameras();
-	    for (VideoDevice camera : cameras) {
-	    	if (camera.toString().equals("FRONT") && !app().getActiveCamera().getID().equalsIgnoreCase(camera.getID())) {
-	    		app().switchCamera(camera);
-	    		break;
-	    	}
-		}
-
-
-
-
-	    ArrayList<Effect> filters = app().getVideoFilters();
-
-		for(Effect effect : filters){
-			if(effect.getName().equalsIgnoreCase("original")){
-				app().changeVideoEffect(effect);
-				break ;
-			}
-		}
-
-
+		app().checkGL();
+		app().selectCamera("FRONT");
 		app().changeResolution(VideoController.ResolutionLevel.ResolutionLevelMed);
-
 	    app().openPreview();
 
 		String lastSessionId = settings().get("avs_session_id");
-		String lastDisplayName = settings().get("avs_session_display_name");
 
 		sessionIdEditText = (EditText) view.findViewById(R.id.session_field);
 
@@ -117,27 +93,17 @@ public class AVChatLoginFragment extends BaseFragment {
 			sessionIdEditText.setText(lastSessionId);
 		}
 
-		displayNameEditText = (EditText) view.findViewById(R.id.displayname_field);
-
-		if (lastDisplayName != null) {
-			displayNameEditText.setText(lastDisplayName);
-		}
-
 		/****
 		 * Let's bind the view for camera preview output
 		 */
-		app().bindVideoPanel(null, panel);
+		app().bindVideoPanel(ApplicationSettings.PREVIEW_ID, panel);
 
 		Button join = (Button) view.findViewById(R.id.join_button);
 		join.setOnClickListener(new OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
-//				if (app().isOnline()) {
-					join();
-//				} else {
-//					Toast.makeText(getActivity(), R.string.no_internet, Toast.LENGTH_LONG).show();
-//				}
+				join();
 			}
 		});
 
@@ -153,46 +119,49 @@ public class AVChatLoginFragment extends BaseFragment {
 	    	previewRect.setPadding(0, 0, 0, 0);
 	    }
 	}
-
-	private void join() 
+	
+	private boolean checkSessionId(String sessionId)
 	{
-		String sessionId = sessionIdEditText.getText().toString();
-		String displayName = displayNameEditText.getText().toString();
 		if (sessionId.isEmpty()) {
 			Toast.makeText(getActivity(), R.string.enter_conference_id, Toast.LENGTH_LONG).show();
 			
-			return;
+			return false;
 		}
 		
 		if (!sessionId.matches("^([a-zA-Z0-9-%])+$") || sessionId.length() > CONFERENCE_ID_LIMIT) {
 			showErrorMessageBox(getString(R.string.join_session), getString(R.string.wrong_conference_id));
 			
-			return;
+			return false;
 		}
 		
-		if (displayName.isEmpty()) {
-			Toast.makeText(getActivity(), R.string.enter_conference_display_name, Toast.LENGTH_LONG).show();
-			
-			return;
-		}
+		return true;
+	}
+
+	private void join() 
+	{
+		String sessionId = sessionIdEditText.getText().toString();
 		
-		if (displayName.length() > DISPLAY_NAME_LIMIT) {
-			showErrorMessageBox(getString(R.string.join_session), getString(R.string.display_name_too_long));
-			
+		if (!checkSessionId(sessionId)) {
 			return;
 		}
 
 		InputMethodManager imm = (InputMethodManager)getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-			imm.hideSoftInputFromWindow(displayNameEditText.getWindowToken(), 0);
+			imm.hideSoftInputFromWindow(sessionIdEditText.getWindowToken(), 0);
 			
-		if(!app().isOnline()){
+		if (!app().isOnline()) {
 			showErrorMessageBox("Network Error", getString(R.string.no_internet));
 			return;
 		}
-			
-		app().join(sessionId, displayName);
-	}
 
+		String strUseFixedAvs = settings().get(ApplicationSettings.UseFixedAvs);
+		String strAvsIp = settings().get(ApplicationSettings.AvsIp);
+
+		if (strUseFixedAvs != null && strUseFixedAvs.equalsIgnoreCase("true") && strAvsIp != null) {
+			app().directJoin(sessionId, strAvsIp);
+		} else {
+			app().join(sessionId);
+		}
+	}
 
 	protected void finalize() throws Throwable {
 		LogSdk.d(TAG, "ooVooCamera -> VideoPanel -> finalize AVChatLoginFragment ->");
@@ -216,11 +185,10 @@ public class AVChatLoginFragment extends BaseFragment {
 	}
 	
 	public BaseFragment getBackFragment() {
-		return new LoginFragment();
+		return LoginFragment.newInstance();
 	}
 	
 	public boolean onBackPressed() {
-
 		app().releaseAVChat();
 		return true ;
     }
