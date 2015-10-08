@@ -634,7 +634,7 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                     @Override
                     public void onVideoRenderStart() {
                         try {
-                            fullScreenAvatar.setVisibility(View.GONE);
+                            fullScreenAvatar.setVisibility(View.INVISIBLE);
                         } catch (Exception err) {
                             LogSdk.e(TAG, "onVideoRenderStart " + err);
                         }
@@ -695,6 +695,8 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
 
             app().bindVideoPanel(item.getUserId(), item.getVideo());
             item.enableListener();
+
+            videoAdapter.notifyDataSetChanged();
 
         } catch (Exception err) {
 
@@ -883,28 +885,27 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
         public View getView(final int position, View convertView, ViewGroup viewGroup) {
 
             try {
-            	ViewHolder viewHolder = null;
-            	View v = convertView;
+                ViewHolder viewHolder = null;
+                View v = convertView;
 
                 VideoItem item = getItem(position);
 
                 VideoPanel panel = item != null ? item.getVideo() : null;
                 VideoPanel cached = (VideoPanel) (v != null ? v.getTag(R.id.video_panel_view) : null);
-                boolean must_process_new_video_panel = panel == null || cached == null ||  !panel.equals(cached);
+                boolean must_process_new_video_panel = panel == null || cached == null || !panel.equals(cached);
 
                 if (item != null) {
                     LogSdk.d(TAG, "VideoAdapter => video (getView)  item = " + (item.getUserId() == null ? "preview " : item.getUserId()) + ", at position = " + position + ", video panel need to be updated ? " + (must_process_new_video_panel ? "Yes" : "No"));
                 } else
                     LogSdk.d(TAG, "VideoAdapter => video (getView)  item = not exist for position = " + position + ", video panel need to be updated ? " + (must_process_new_video_panel ? "Yes" : "No"));
 
-                if (must_process_new_video_panel)
-                {
+                if (must_process_new_video_panel) {
                     if (v == null) {
-                    	viewHolder = new ViewHolder();
-                    	
-                    	v = mInflater.inflate(R.layout.video_grid_item, viewGroup, false);
+                        viewHolder = new ViewHolder();
 
-                    	viewHolder.videoPanel = (VideoPanel) v.findViewById(R.id.video_panel_view);
+                        v = mInflater.inflate(R.layout.video_grid_item, viewGroup, false);
+
+                        viewHolder.videoPanel = (VideoPanel) v.findViewById(R.id.video_panel_view);
                         LogSdk.d(TAG, "VideoAdapter => video (view  null)  video = " + viewHolder.videoPanel.hashCode());
                         viewHolder.videoPanel.setTag(R.layout.video_grid_item, v);
 
@@ -913,16 +914,16 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                         viewHolder.noVideoMessage = (TextView) v.findViewById(R.id.no_video_message);
 
                         v.setTag(viewHolder);
-                        
+
                         if (item.getVideo() == null) {
                             item.setVideo(viewHolder.videoPanel);
                             app().bindVideoPanel(item.getUserId(), viewHolder.videoPanel);
                             viewHolder.videoPanel.setVisibility(View.VISIBLE);
                         }
-                        
+
                     } else {
-                    	viewHolder = (ViewHolder) v.getTag();
-                    	
+                        viewHolder = (ViewHolder) v.getTag();
+
                         if (item.getVideo() == null) {
                             item.setVideo(viewHolder.videoPanel);
                             app().bindVideoPanel(item.getUserId(), viewHolder.videoPanel);
@@ -940,10 +941,10 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                     height = getDisplaySize().y - (paddings[0] + paddings[1]);
                 } else {
                     if (isPreviewFullScreen()) {
-                    	v.setVisibility(View.INVISIBLE);
+                        v.setVisibility(View.INVISIBLE);
                         item.getVideo().setVisibility(View.INVISIBLE);
                     } else if (v.getVisibility() == View.INVISIBLE) {
-                    	v.setVisibility(View.VISIBLE);
+                        v.setVisibility(View.VISIBLE);
                         item.getVideo().setVisibility(View.VISIBLE);
                     }
                 }
@@ -959,32 +960,36 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                 viewHolder.displayNameTextView.setText(item.getUserData());
 
                 if (item.isAvatarVisible()) {
-                    ViewGroup.LayoutParams layoutParams = viewHolder.avatarImageView.getLayoutParams();
-                    layoutParams.width = width;
-                    layoutParams.height = height;
-                    viewHolder.avatarImageView.setLayoutParams(layoutParams);
-                	viewHolder.avatarImageView.setVisibility(View.VISIBLE);
+                    if (fullScreenRemoteview.getVisibility() == View.VISIBLE) {
+                        fullScreenAvatar.setVisibility(View.VISIBLE);
+                    } else {
+                        ViewGroup.LayoutParams layoutParams = viewHolder.avatarImageView.getLayoutParams();
+                        layoutParams.width = width;
+                        layoutParams.height = height;
+                        viewHolder.avatarImageView.setLayoutParams(layoutParams);
+                        viewHolder.avatarImageView.setVisibility(View.VISIBLE);
+                    }
+
                 } else {
-                	viewHolder.avatarImageView.setVisibility(View.INVISIBLE);
+                    viewHolder.avatarImageView.setVisibility(View.INVISIBLE);
                 }
 
                 if (item.isErrorMessageVisible()) {
-                	viewHolder.noVideoMessage.setText(getString(R.string.video_cannot_be_viewed));
-                	viewHolder.noVideoMessage.setVisibility(View.VISIBLE);
+                    viewHolder.noVideoMessage.setText(getString(R.string.video_cannot_be_viewed));
+                    viewHolder.noVideoMessage.setVisibility(View.VISIBLE);
                     viewHolder.avatarImageView.setVisibility(View.VISIBLE);
                 } else {
-                	viewHolder.noVideoMessage.setVisibility(View.GONE);
+                    viewHolder.noVideoMessage.setVisibility(View.GONE);
                     if (!item.isAvatarVisible()) {
-                    	viewHolder.avatarImageView.setVisibility(View.INVISIBLE);
+                        viewHolder.avatarImageView.setVisibility(View.INVISIBLE);
                     }
                 }
 
                 return v;
-            }
-            catch(Exception err){
+            } catch (Exception err) {
                 err.printStackTrace();
             }
-            
+
             return convertView;
         }
 
@@ -1095,7 +1100,7 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                 VideoItem videoItem = (VideoItem) fullScreenRemoteview.getTag(R.id.video_panel_view);
                 if (videoItem != null && videoItem.getUserId().equals(userId) &&
                         fullScreenRemoteview.getVisibility() == View.VISIBLE) {
-                    fullScreenAvatar.setVisibility(View.GONE);
+                    fullScreenAvatar.setVisibility(View.INVISIBLE);
                 }
 
 				for (VideoItem item : mItems) {

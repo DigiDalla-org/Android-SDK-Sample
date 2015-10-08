@@ -18,7 +18,7 @@ import java.util.Hashtable;
 
 public class ApplicationSettings extends Hashtable<String, String> {
 
-	private static final String TOKEN = ""; // Put your application token here
+	private static final String TOKEN = "MDAxMDAxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADZ8kvmE4VbiditEALpO55%2FK4LngjP%2FDS3mmrcDyfge1xywWrxUwInewBfuD35Jwb%2FFNVe2wvsL06pUYU1FxtWUAwqLh%2Fn1WR0JPBTqFM%2Fyog%3D%3D"; // Put your application token here
 	public static final String	Token				  = "token";
 	public static final String	Username	          = "username";
 	public static final String	Password	          = "password";

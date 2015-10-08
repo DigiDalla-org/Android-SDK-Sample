@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+	
+	<FrameLayout
+	    android:layout_width="fill_parent"
+	    android:layout_height="fill_parent"
+	    android:layout_weight="1">
+	    
+	    <GridView
+			android:id="@+id/video_grid_view"
+			android:layout_width="fill_parent"
+	        android:layout_height="fill_parent"
+			android:padding="@dimen/grid_item_padding"
+	        android:stretchMode="columnWidth"
+	        android:clipChildren="true"
+	        android:numColumns="2"/>
+		
+		<com.oovoo.sdk.api.ui.VideoPanel
+		    android:id="@+id/full_screen_video_panel_remoteview"
+		    android:layout_width="match_parent"
+	        android:layout_height="match_parent"
+	        android:padding="4dip"
+	        android:visibility="gone">
+		</com.oovoo.sdk.api.ui.VideoPanel>
+		
+		<ImageView
+	        android:id="@+id/full_screen_avatar_image_view"
+	        android:layout_width="match_parent"
+	        android:layout_height="match_parent"
+	        android:src="@drawable/an_im_vc_place_holder"
+	        android:background="@color/image_holder_bg"
+	        android:visibility="gone"/>
+	      
+		<TextView
+			android:id="@+id/full_screen_label"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_gravity="top"
+	        android:gravity="center"
+	        android:textColor="@android:color/white"
+	        android:background="@color/black_overlay"
+	        android:singleLine="true"
+	        android:ellipsize="end"
+	        android:visibility="gone"/>
+	</FrameLayout>
+	
+	<LinearLayout
+		android:id="@+id/call_controll_layout"
+	   	android:layout_width="fill_parent"
+	   	android:layout_height="wrap_content"
+	   	android:gravity="bottom"
+	   	android:orientation="horizontal">
+	   
+	   	<include layout="@layout/call_controll" 
+	    	android:layout_width="match_parent"
+	       	android:layout_height="wrap_content"
+	       	android:layout_weight="1"/>
+	</LinearLayout>
+
+</LinearLayout>
+<!-- From: file:/Users/jack/Downloads/oovoosdk-android-2.1.0.113/ooVooSample/AndroidStudio/app/src/main/res/layout/avchat_fragment.xml -->

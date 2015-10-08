@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- From: file:/Users/jack/Downloads/oovoosdk-android-2.1.0.113/ooVooSample/AndroidStudio/app/src/main/res/values/colors.xml -->
+    <eat-comment/>
+    <color name="bar_dark_color">#CECECE</color>
+    <color name="bar_light_color">#F2F2F2</color>
+    <color name="bar_meduim_color">#DFDEE0</color>
+    <color name="black_overlay">#66000000</color>
+    <color name="color_preloader_center">#FFCCCB</color>
+    <color name="color_preloader_end">#00FF00</color>
+    <color name="color_preloader_start">#FF0000</color>
+    <color name="controller_grey">#EAEAEA</color>
+    <color name="green">#00FF00</color>
+    <color name="half_transparent_grey">#9FA2A2A2</color>
+    <color name="hint_color">#D3D3D3</color>
+    <color name="image_holder_bg">#EAEAEA</color>
+    <color name="light_green">#90EE90</color>
+    <color name="light_red">#FFCCCB</color>
+    <color name="list_view_bg">#DADFEE</color>
+    <color name="red">#FF0000</color>
+    <color name="red_dark_color">#B30000</color>
+    <color name="send_dark_color">#515F9F</color>
+    <color name="send_light_color">#8897BF</color>
+    <color name="send_meduim_color">#5D6CA5</color>
+    <color name="spinner_color_bg">#849599</color>
+    <color name="text_color">#FFF</color>
+    <color name="text_field_color">#000</color>
+    <color name="text_shadow">#FFF</color>
+    <declare-styleable name="ButtonBarContainerTheme"><attr format="reference" name="buttonBarStyle"/><attr format="reference" name="buttonBarButtonStyle"/></declare-styleable>
+    <declare-styleable name="DynamicAbsoluteLayout_Layout"><attr format="dimension" name="layout_x"/><attr format="dimension" name="layout_y"/></declare-styleable>
+    <declare-styleable name="com.ooVoo.oovoosample.VideoCallActivity.LocationableGLSurfaceView"><attr format="integer" name="locationIndex"/></declare-styleable>
+    <!-- From: file:/Users/jack/Downloads/oovoosdk-android-2.1.0.113/ooVooSample/AndroidStudio/app/src/main/res/values/dimens.xml -->
+    <eat-comment/>
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_padding">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    <dimen name="grid_item_padding">2dip</dimen>
+    <dimen name="main_margin">20dip</dimen>
+    <dimen name="main_padding">20dip</dimen>
+    <dimen name="main_row_height">40dip</dimen>
+    <dimen name="main_row_label_width">120dip</dimen>
+    <dimen name="main_row_text_width">220dip</dimen>
+    <dimen name="row_margin">16dip</dimen>
+    <dimen name="vc_controller_button_size">42dip</dimen>
+    <dimen name="vc_controller_height">55dip</dimen>
+    <dimen name="vc_surface_margin">5dp</dimen>
+    <dimen name="vc_surface_text_height">26dp</dimen>
+    <!-- From: file:/Users/jack/Downloads/oovoosdk-android-2.1.0.113/ooVooSample/AndroidStudio/app/src/main/res/values/strings.xml -->
+    <eat-comment/>
+    <string name="add_title">Add</string>
+    <string name="answer">Answer</string>
+    <string name="app_id">App ID:</string>
+    <string name="app_name">ooVoo SDK Sample 2.1</string>
+    <string name="app_token">App Token:</string>
+    <string name="audio_routes">Audio Routes</string>
+    <string name="authorizing">Authorizing</string>
+    <string name="back_camera">Back camera</string>
+    <string name="call_receiver_label">Call receiver Id:</string>
+    <string name="call_receivers">Call receivers:</string>
+    <string name="calling">Calling</string>
+    <string name="cancel">Cancel</string>
+    <string name="change_camera">Change camera</string>
+    <string name="conference_id_label">Conference ID:</string>
+    <string name="decline">Decline</string>
+    <string name="device_is_not_supported">Device is not supported!</string>
+    <string name="display_name_label">Display Name:</string>
+    <string name="display_name_too_long">Display name is too long</string>
+    <string name="enter_call_receiver">Enter call receiver</string>
+    <string name="enter_conference_display_name">Enter display name</string>
+    <string name="enter_conference_id">Enter conference ID</string>
+    <string name="enter_conference_id_and_display_name">Please enter conference id and display name</string>
+    <string name="enter_display_name">Enter display name</string>
+    <string name="enter_receiver_id">Enter receiver Id</string>
+    <string name="enter_session_id">Enter conference id</string>
+    <string name="enter_username">Enter username</string>
+    <string name="enter_username_toast">Please enter username</string>
+    <string name="filters">Filters</string>
+    <string name="front_camera">Front camera</string>
+    <string name="info_participants">Participants info</string>
+    <string name="input_ip_title">Input IP Address</string>
+    <string name="invalid_ip">Please input a valid IP address!!</string>
+    <string name="join_session">Join Session</string>
+    <string name="join_title">Join</string>
+    <string name="joining_av_chat">Joining AV chat</string>
+    <string name="log_level">SDK Log Level:</string>
+    <string name="logging_in">Logging in</string>
+    <string name="login_title">Log in</string>
+    <string name="make_call_title">Make call</string>
+    <string name="me">Me</string>
+    <string name="menu_information">Information</string>
+    <string name="menu_settings">Settings</string>
+    <string name="min_username_length">User name must contain 6 characters</string>
+    <string name="mute_camera">Mute camera</string>
+    <string name="no_internet">No Internet Connection. Please check your internet connection or try again later.</string>
+    <string name="no_receivers">Please add or enable up to 4 receivers!</string>
+    <string name="ok">Ok</string>
+    <string name="resolution">Resolution</string>
+    <string name="room_title">Room</string>
+    <string name="sdk_version">SDK Version:</string>
+    <string name="session_id">Session ID</string>
+    <string name="settings_base_url">Base URL:</string>
+    <string name="start_call_title">Call</string>
+    <string name="use_fixed_avs">Use fixed AVS</string>
+    <string name="username_label">Username:</string>
+    <string name="video_cannot_be_viewed">Video cannot be viewed!</string>
+    <string name="wrong_conference_id">Conference ID is not valid</string>
+    <string name="wrong_username_id">Username is not valid</string>
+    <!-- From: file:/Users/jack/Downloads/oovoosdk-android-2.1.0.113/ooVooSample/AndroidStudio/app/src/main/res/values/styles.xml -->
+    <eat-comment/>
+    <style name="AppBaseTheme" parent="android:Theme.Light">
+        <!--
+            Theme customizations available in newer API levels can go in
+            res/values-vXX/styles.xml, while customizations related to
+            backward-compatibility can go here.
+
+        -->
+    </style>
+    <style name="AppTheme" parent="AppBaseTheme">
+        <!-- All customizations that are NOT specific to a particular API-level can go here. -->
+    </style>
+    <style name="ButtonBar">
+        <item name="android:paddingLeft">2dp</item>
+        <item name="android:paddingTop">5dp</item>
+        <item name="android:paddingRight">2dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:background">@android:drawable/bottom_bar</item>
+    </style>
+    <style name="ButtonBarButton"/>
+    <style name="FullscreenTheme" parent="android:Theme.NoTitleBar">
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowBackground">@null</item>
+        <item name="buttonBarStyle">@style/ButtonBar</item>
+        <item name="buttonBarButtonStyle">@style/ButtonBarButton</item>
+    </style>
+</resources>
