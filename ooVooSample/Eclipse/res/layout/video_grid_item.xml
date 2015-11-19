@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:custom="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="@dimen/grid_item_padding"
@@ -8,8 +9,16 @@
 	<com.oovoo.sdk.sample.ui.VideoPanelRect
 	    android:id="@+id/video_panel_view"
 	    android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:visibility="invisible">
 	</com.oovoo.sdk.sample.ui.VideoPanelRect>
+    <com.oovoo.sdk.sample.ui.CustomVideoPanel
+        android:id="@+id/custom_panel_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="invisible"
+        custom:isCircleShape="false">
+    </com.oovoo.sdk.sample.ui.CustomVideoPanel>
 	
 	<ImageView
         android:id="@+id/avatar_image_view"

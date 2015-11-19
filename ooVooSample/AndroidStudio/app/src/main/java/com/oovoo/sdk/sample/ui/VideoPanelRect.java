@@ -14,8 +14,12 @@ public class VideoPanelRect extends VideoPanel {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        
-        int height = ((Point) getTag()).y;
+
+        Point point = (Point) getTag();
+        int height = getMeasuredHeight();
+        if (point != null) {
+            height = point.y;
+        }
         
         setMeasuredDimension(getMeasuredWidth(), height);
     }

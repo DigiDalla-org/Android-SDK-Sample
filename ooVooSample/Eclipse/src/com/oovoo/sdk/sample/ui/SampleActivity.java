@@ -2,49 +2,72 @@ package com.oovoo.sdk.sample.ui;
 
  
  
-
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Fragment;
+import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.oovoo.core.Utils.LogSdk;
 import com.oovoo.sdk.api.ooVooClient;
 import com.oovoo.sdk.oovoosdksampleshow.R;
+import com.oovoo.sdk.sample.app.ApplicationSettings;
 import com.oovoo.sdk.sample.app.ooVooSdkSampleShowApp;
+import com.oovoo.sdk.sample.app.ooVooSdkSampleShowApp.CallNegotiationListener;
 import com.oovoo.sdk.sample.app.ooVooSdkSampleShowApp.Operation;
 import com.oovoo.sdk.sample.app.ooVooSdkSampleShowApp.OperationChangeListener;
+import com.oovoo.sdk.sample.call.CNMessage;
+import com.oovoo.sdk.sample.services.RegistrationIntentService;
 import com.oovoo.sdk.sample.ui.fragments.AVChatLoginFragment;
 import com.oovoo.sdk.sample.ui.fragments.AVChatSessionFragment;
 import com.oovoo.sdk.sample.ui.fragments.BaseFragment;
-import com.oovoo.sdk.sample.ui.fragments.FlashScreen;
+import com.oovoo.sdk.sample.ui.fragments.CallNegotiationFragment;
+import com.oovoo.sdk.sample.ui.fragments.SplashScreen;
 import com.oovoo.sdk.sample.ui.fragments.InformationFragment;
 import com.oovoo.sdk.sample.ui.fragments.LoginFragment;
+import com.oovoo.sdk.sample.ui.fragments.OptionFragment;
+import com.oovoo.sdk.sample.ui.fragments.PushNotificationFragment;
 import com.oovoo.sdk.sample.ui.fragments.ReautorizeFragment;
 import com.oovoo.sdk.sample.ui.fragments.SettingsFragment;
 import com.oovoo.sdk.sample.ui.fragments.WaitingFragment;
 
-public class SampleActivity extends Activity implements OperationChangeListener {
+public class SampleActivity extends Activity implements OperationChangeListener, CallNegotiationListener {
 
  
 	private static final String	  	TAG	           	= SampleActivity.class.getSimpleName();
 	private static final String 	STATE_FRAGMENT 	= "current_fragment";
+	private static final int 		PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
 	private BaseFragment	      	current_fragment	= null;
 	private ooVooSdkSampleShowApp	application	   = null;
 	private MenuItem 				mSettingsMenuItem = null;
 	private MenuItem 				mInformationMenuItem = null;
 	private MenuItem 				mSignalStrengthMenuItem = null;
+	private MenuItem 				mSecureNetworkMenuItem = null;
 	private boolean					mIsAlive = false;
 	private boolean					mNeedShowFragment = false;
-
+	private AlertDialog 			callDialogBuilder = null;
+	private BroadcastReceiver 		mRegistrationBroadcastReceiver = null;
 
 
  
@@ -64,20 +87,25 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
+
 		application = (ooVooSdkSampleShowApp) getApplication();
+		application.setContext(this);
 
 		setRequestedOrientation(application.getDeviceDefaultOrientation());
 
-		//this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		setContentView(R.layout.host_activity);
 
 		application.addOperationChangeListener(this);
+		application.addCallNegotiationListener(this);
+
+
+
 
 		if (savedInstanceState != null) {
 			current_fragment = (BaseFragment)getFragmentManager().getFragment(savedInstanceState, STATE_FRAGMENT);
 			showFragment(current_fragment);
 		} else {
-			Fragment newFragment = new FlashScreen();
+			Fragment newFragment = new SplashScreen();
 			FragmentTransaction ft = getFragmentManager().beginTransaction();
 			ft.add(R.id.host_activity, newFragment).commit();
 
@@ -103,17 +131,40 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 		}
 		super.onSaveInstanceState(savedInstanceState);
 	}
-	
+
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
 		application.removeOperationChangeListener(this);
+		application.removeCallNegotiationListener(this);
 	}
 
 	@Override
 	public void onResume() {
 		super.onResume();
 
+
+		try {
+			if(mRegistrationBroadcastReceiver == null)
+			{
+				mRegistrationBroadcastReceiver = new BroadcastReceiver() {
+					@Override
+					public void onReceive(Context context, Intent intent) {
+						SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+						boolean sentToken = sharedPreferences.getBoolean(ApplicationSettings.SENT_TOKEN_TO_SERVER, false);
+						if (!sentToken) {
+							application.showErrorMessageBox(SampleActivity.this, getString(R.string.registering_message), getString(R.string.token_error_message));
+						}
+					}
+				};
+				LocalBroadcastManager.getInstance(this).registerReceiver(mRegistrationBroadcastReceiver, new IntentFilter(ApplicationSettings.REGISTRATION_COMPLETE));
+			}
+		}
+		catch(Exception err){
+			Log.e( TAG, "onResume exception: with ", err);
+		}
+
+				
 		mIsAlive = true;
  
 
@@ -126,7 +177,7 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 	@Override
 	protected void onPause() {
 		super.onPause();
-
+				
 		mIsAlive = false;
 	}
 
@@ -166,8 +217,21 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 		mSignalStrengthMenuItem.setActionView(signalBar);
 		mSignalStrengthMenuItem.setVisible(false);
 
+		mSecureNetworkMenuItem = menu.findItem(R.id.menu_secure_network);
+
+		mSecureNetworkMenuItem.setVisible(false);
+
 		return true;
 	}
+
+	@Override
+	public boolean onPrepareOptionsMenu (Menu menu) {
+		MenuItem item = menu.findItem(R.id.menu_secure_network);
+		item.setEnabled(false);
+
+		return true;
+	}
+
 
 	@Override
 	public boolean onOptionsItemSelected( MenuItem item)
@@ -207,48 +271,65 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 	@Override
 	public void onOperationChange(Operation state) {
 		try {
-			Fragment prev_fragment = current_fragment ;
 			switch (state) {
-			case Error:
-			{
-				switch (state.forOperation()) {
-				case Authorized:
-					current_fragment = ReautorizeFragment.newInstance(mSettingsMenuItem, state.getDescription());
+				case Error:
+				{
+					switch (state.forOperation()) {
+					case Authorized:
+						current_fragment = ReautorizeFragment.newInstance(mSettingsMenuItem, state.getDescription());
+						break;
+					case LoggedIn:
+						current_fragment = LoginFragment.newInstance(state.getDescription());
+						break;
+					case AVChatJoined:
+						application.showErrorMessageBox(this, getString(R.string.join_session), state.getDescription());
+						current_fragment = AVChatLoginFragment.newInstance(mSettingsMenuItem);
+						break;
+					default:
+						return;
+					}
+				}
 					break;
-				case LoggedIn:
-					current_fragment = LoginFragment.newInstance(state.getDescription());
+				case Processing:
+					current_fragment = WaitingFragment.newInstance(state.getDescription());
 					break;
-				case AVChatJoined:
-				case AVChatDirectJoined:
-					application.showErrorMessageBox(this, getString(R.string.join_session), state.getDescription());
+				case AVChatRoom:
 					current_fragment = AVChatLoginFragment.newInstance(mSettingsMenuItem);
 					break;
+				case AVChatCall:
+					current_fragment = CallNegotiationFragment.newInstance(mSettingsMenuItem);
+					break;
+				case PushNotification:
+					current_fragment = PushNotificationFragment.newInstance(mSettingsMenuItem);
+					break;
+				case AVChatJoined:
+					current_fragment = AVChatSessionFragment.newInstance(mSignalStrengthMenuItem,
+						mSecureNetworkMenuItem, mInformationMenuItem);
+					break;
+				case Authorized:
+					current_fragment = LoginFragment.newInstance(mSettingsMenuItem);
+					break;
+				case LoggedIn:
+					if (checkPlayServices()) {
+						// Start IntentService to register this application with GCM.
+						Intent intent = new Intent(this, RegistrationIntentService.class);
+						startService(intent);
+					}
+					current_fragment = OptionFragment.newInstance(mSettingsMenuItem);
+					break;
+				case AVChatDisconnected:
+					if (application.isCallNegotiation()) {
+						return;
+					} else {
+						current_fragment = AVChatLoginFragment.newInstance(mSettingsMenuItem);
+						break;
+					}
+
 				default:
 					return;
-				}
-			}
-				break;
-			case Processing:
-				current_fragment = WaitingFragment.newInstance(state.getDescription());
-				break;
-			case AVChatJoined:
-			case AVChatDirectJoined:
-				current_fragment = AVChatSessionFragment.newInstance(mSignalStrengthMenuItem, mInformationMenuItem);
-				break;
-			case Authorized:
-				current_fragment = LoginFragment.newInstance();
-				break;
-			case AVChatDisconnected:
-			case LoggedIn:
-				current_fragment = AVChatLoginFragment.newInstance(mSettingsMenuItem);
-				break;
-			default:
-				return;
 			}
 
 			showFragment(current_fragment);
-			//removeOldFragment(prev_fragment);
-			prev_fragment = null ;
 			System.gc();
 			Runtime.getRuntime().gc();
 
@@ -275,23 +356,6 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 		}
 		catch(Exception err){
 			LogSdk.e(TAG,"showFragment " + err);
-		}
-	}
-
-
-	public void removeOldFragment(Fragment fragment) {
-		try {
-			if(fragment != null) {
-				FragmentTransaction trans = getFragmentManager().beginTransaction();
-				trans.remove(fragment);
-				trans.commit();
-				System.gc();
-				Runtime.getRuntime().gc();
-				LogSdk.d(TAG, "ooVooCamera -> VideoPanel -> finalize removeOldFragment " + fragment);
-			}
-		}
-		catch(Exception err){
-			LogSdk.e(TAG,"removeOldFragment " + err);
 		}
 	}
 
@@ -352,7 +416,6 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 					} else {
 
 						showFragment(fragment);
-						//removeOldFragment(current_fragment);
 						System.gc();
 						Runtime.getRuntime().gc();
 					}
@@ -366,5 +429,80 @@ public class SampleActivity extends Activity implements OperationChangeListener 
 			Log.e(TAG, "");
 		}
 		super.onBackPressed();
+	}
+
+	@Override
+	public void onMessageReceived(final CNMessage cnMessage)
+	{
+		if (application.getUniqueId().equals(cnMessage.getUniqueId())) {
+			return;
+		}
+
+		if (cnMessage.getMessageType() == CNMessage.CNMessageType.Calling) {
+
+			if (application.isInConference()) {
+				application.sendCNMessage(cnMessage.getFrom(), CNMessage.CNMessageType.Busy, null);
+				return;
+			}
+
+			callDialogBuilder = new AlertDialog.Builder(this).create();
+			LayoutInflater inflater = getLayoutInflater();
+			View incomingCallDialog = inflater.inflate(R.layout.incoming_call_dialog, null);
+			incomingCallDialog.setAlpha(0.5f);
+			callDialogBuilder.setView(incomingCallDialog);
+
+			Button answerButton = (Button) incomingCallDialog.findViewById(R.id.answer_button);
+			answerButton.setOnClickListener(new OnClickListener() {
+
+				@Override
+				public void onClick(View v) {
+					application.setConferenceId(cnMessage.getConferenceId());
+					application.sendCNMessage(cnMessage.getFrom(), CNMessage.CNMessageType.AnswerAccept, null);
+					callDialogBuilder.hide();
+
+					application.join(application.getConferenceId(), true);
+				}
+			});
+
+			Button declineButton = (Button) incomingCallDialog.findViewById(R.id.decline_button);
+			declineButton.setOnClickListener(new OnClickListener() {
+
+				@Override
+				public void onClick(View v) {
+					application.sendCNMessage(cnMessage.getFrom(), CNMessage.CNMessageType.AnswerDecline, null);
+					callDialogBuilder.hide();
+				}
+			});
+
+			callDialogBuilder.setCancelable(false);
+			callDialogBuilder.show();
+		} else if (cnMessage.getMessageType() == CNMessage.CNMessageType.Cancel) {
+			callDialogBuilder.hide();
+		} else if (cnMessage.getMessageType() == CNMessage.CNMessageType.EndCall) {
+			if (application.leave()) {
+				int count = getFragmentManager().getBackStackEntryCount();
+				String name = getFragmentManager().getBackStackEntryAt(count - 2).getName();
+				getFragmentManager().popBackStack(name, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+			}
+		}
+	}
+
+	/**
+	 * Check the device to make sure it has the Google Play Services APK. If
+	 * it doesn't, display a dialog that allows users to download the APK from
+	 * the Google Play Store or enable it in the device's system settings.
+	 */
+	private boolean checkPlayServices() {
+		int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
+		if (resultCode != ConnectionResult.SUCCESS) {
+			if (GooglePlayServicesUtil.isUserRecoverableError(resultCode)) {
+				GooglePlayServicesUtil.getErrorDialog(resultCode, this,
+						PLAY_SERVICES_RESOLUTION_REQUEST).show();
+			} else {
+				LogSdk.i(TAG, "This device is not supported.");
+			}
+			return false;
+		}
+		return true;
 	}
 }

@@ -21,6 +21,7 @@ import com.oovoo.sdk.api.ui.VideoPanel;
 import com.oovoo.sdk.interfaces.VideoController;
 import com.oovoo.sdk.oovoosdksampleshow.R;
 import com.oovoo.sdk.sample.app.ApplicationSettings;
+import com.oovoo.sdk.sample.ui.CustomVideoPanel;
 import com.oovoo.sdk.sample.ui.VideoPanelPreviewRect;
 
 public class AVChatLoginFragment extends BaseFragment {
@@ -31,17 +32,17 @@ public class AVChatLoginFragment extends BaseFragment {
 	private VideoPanelPreviewRect previewRect = null;
 
 	public AVChatLoginFragment(){}
-	
+
 	public static final AVChatLoginFragment newInstance(MenuItem settingsMenuItem) {
 		AVChatLoginFragment instance = new AVChatLoginFragment();
 	    instance.setSettingsMenuItem(settingsMenuItem);
 	    return instance;
 	}
-	
+
 	public void setSettingsMenuItem(MenuItem settingsMenuItem) {
 		this.settingsMenuItem = settingsMenuItem;
 	}
-	
+
 	@Override
     public void onResume() {
 	    super.onResume();
@@ -50,7 +51,7 @@ public class AVChatLoginFragment extends BaseFragment {
 			settingsMenuItem.setVisible(true);
 		}
     }
-	
+
 	@Override
     public void onPause() {
         super.onPause();
@@ -58,24 +59,27 @@ public class AVChatLoginFragment extends BaseFragment {
 			settingsMenuItem.setVisible(false);
 		}
 	}
-	
+
 	@Override
 	public void onConfigurationChanged(Configuration newConfig) {
 	    super.onConfigurationChanged(newConfig);
 
-	    if (app().isTablet()) {			
+	    if (app().isTablet()) {
 	    	updatePreviewLayout(newConfig);
-        }	    
+        }
 	}
-	
+
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
 		View view = inflater.inflate(R.layout.avchat_login_fragment, container, false);
 		VideoPanel panel = (VideoPanel) view.findViewById(R.id.preview_view);
+		CustomVideoPanel customPanel = (CustomVideoPanel) view.findViewById(R.id.custom_preview_view);
+
+		TextView displayNameTextView = (TextView) view.findViewById(R.id.display_name_text_view);
 
 		previewRect = (VideoPanelPreviewRect) view.findViewById(R.id.preview_rect);
-		
+
 		if (app().isTablet()) {
 			Configuration config = getResources().getConfiguration();
 			updatePreviewLayout(config);
@@ -96,7 +100,20 @@ public class AVChatLoginFragment extends BaseFragment {
 		/****
 		 * Let's bind the view for camera preview output
 		 */
-		app().bindVideoPanel(ApplicationSettings.PREVIEW_ID, panel);
+		String useCustomRenderValue = settings().get(ApplicationSettings.UseCustomRender);
+
+		if (useCustomRenderValue != null && Boolean.valueOf(useCustomRenderValue)) {
+			panel.setVisibility(View.INVISIBLE);
+			customPanel.setVisibility(View.VISIBLE);
+			app().bindVideoPanel(ApplicationSettings.PREVIEW_ID, customPanel);
+			if (customPanel.isCircleShape()) {
+				displayNameTextView.setVisibility(View.INVISIBLE);
+			}
+		} else {
+			customPanel.setVisibility(View.INVISIBLE);
+			panel.setVisibility(View.VISIBLE);
+			app().bindVideoPanel(ApplicationSettings.PREVIEW_ID, panel);
+		}
 
 		Button join = (Button) view.findViewById(R.id.join_button);
 		join.setOnClickListener(new OnClickListener() {
@@ -109,68 +126,66 @@ public class AVChatLoginFragment extends BaseFragment {
 
 		return view;
 	}
-	
+
 	private void updatePreviewLayout(Configuration config) {
 		if (config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
 			int width = app().getDisplaySize().x;
 	    	int padding = (width - ((int)(app().getDisplaySize().y * 0.75f * (4.0/3.0))))/2;
-        	previewRect.setPadding(padding, 0, padding, 0);
+
+			String useCustomRenderValue = settings().get(ApplicationSettings.UseCustomRender);
+			if (useCustomRenderValue != null && Boolean.valueOf(useCustomRenderValue)) {
+				padding = (width - (int)(app().getDisplaySize().y * 0.7f))/2;
+			}
+			previewRect.setPadding(padding, 0, padding, 0);
 		} else if (config.orientation == Configuration.ORIENTATION_PORTRAIT) {
 	    	previewRect.setPadding(0, 0, 0, 0);
 	    }
 	}
-	
+
 	private boolean checkSessionId(String sessionId)
 	{
 		if (sessionId.isEmpty()) {
 			Toast.makeText(getActivity(), R.string.enter_conference_id, Toast.LENGTH_LONG).show();
-			
+
 			return false;
 		}
-		
-		if (!sessionId.matches("^([a-zA-Z0-9-%])+$") || sessionId.length() > CONFERENCE_ID_LIMIT) {
+
+		if (sessionId.length() > CONFERENCE_ID_LIMIT) {
 			showErrorMessageBox(getString(R.string.join_session), getString(R.string.wrong_conference_id));
-			
+
 			return false;
 		}
-		
+
 		return true;
 	}
 
-	private void join() 
+	private void join()
 	{
 		String sessionId = sessionIdEditText.getText().toString();
-		
+
 		if (!checkSessionId(sessionId)) {
 			return;
 		}
 
 		InputMethodManager imm = (InputMethodManager)getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
 			imm.hideSoftInputFromWindow(sessionIdEditText.getWindowToken(), 0);
-			
+
 		if (!app().isOnline()) {
 			showErrorMessageBox("Network Error", getString(R.string.no_internet));
 			return;
 		}
 
-		String strUseFixedAvs = settings().get(ApplicationSettings.UseFixedAvs);
-		String strAvsIp = settings().get(ApplicationSettings.AvsIp);
-
-		if (strUseFixedAvs != null && strUseFixedAvs.equalsIgnoreCase("true") && strAvsIp != null) {
-			app().directJoin(sessionId, strAvsIp);
-		} else {
-			app().join(sessionId);
-		}
+		app().join(sessionId, false);
 	}
 
 	protected void finalize() throws Throwable {
 		LogSdk.d(TAG, "ooVooCamera -> VideoPanel -> finalize AVChatLoginFragment ->");
 		super.finalize();
 	}
-	
+
 	public void showErrorMessageBox(String title,String msg)
 	{
-		try {		
+		try {
 				AlertDialog.Builder popupBuilder = new AlertDialog.Builder(getActivity());
 				TextView myMsg = new TextView(getActivity());
 				myMsg.setText(msg);
@@ -183,13 +198,14 @@ public class AVChatLoginFragment extends BaseFragment {
 		} catch( Exception e) {
 		}
 	}
-	
+
 	public BaseFragment getBackFragment() {
-		return LoginFragment.newInstance();
+		return OptionFragment.newInstance(settingsMenuItem);
 	}
-	
+
 	public boolean onBackPressed() {
 		app().releaseAVChat();
-		return true ;
+
+		return true;
     }
 }

@@ -13,21 +13,26 @@ import android.widget.TextView;
 import com.oovoo.core.LoggerListener.LogLevel;
 import com.oovoo.sdk.oovoosdksampleshow.R;
 import com.oovoo.sdk.sample.app.ApplicationSettings;
+import com.oovoo.sdk.sample.ui.CustomVideoPanel;
 
 public class SettingsFragment extends BaseFragment {
 	
 	private Spinner logSpinner = null;
 	private TextView tokenTextView = null;
+	private CustomVideoPanel customPanel = null;
 
 	@Override
     public void onCreate(Bundle savedInstanceState) {
 	    super.onCreate(savedInstanceState);
+
     }
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		View view = inflater.inflate(R.layout.settings_fragment_layout, container, false);
-		
+
+		customPanel = (CustomVideoPanel) container.findViewById(R.id.custom_preview_view);
+
 		tokenTextView = (TextView) view.findViewById(R.id.token_edit_text);
 		tokenTextView.setText(settings().get(ApplicationSettings.Token));
 		
@@ -60,7 +65,16 @@ public class SettingsFragment extends BaseFragment {
 		
 		return view;
 	}
-	
+
+	@Override
+	public void onResume() {
+		super.onResume();
+
+		if (customPanel != null) {
+			customPanel.setVisibility(View.INVISIBLE);
+		}
+	}
+
 	@Override
     public void onPause() {
         super.onPause();
@@ -69,5 +83,9 @@ public class SettingsFragment extends BaseFragment {
         settings().put(ApplicationSettings.LogLevelKey, logLevel);
         settings().put(ApplicationSettings.Token, tokenTextView.getText().toString());
         settings().save();
+
+		if (customPanel != null) {
+			customPanel.setVisibility(View.VISIBLE);
+		}
 	}
 }

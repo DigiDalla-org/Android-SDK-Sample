@@ -5,23 +5,20 @@ import android.content.Context;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.oovoo.core.Utils.LogSdk;
 import com.oovoo.sdk.oovoosdksampleshow.R;
 
 
 public class LoginFragment extends BaseFragment {
 	
-	private static final String TAG 	= LoginFragment.class.getSimpleName();
 	private static final int MIN_USERNAME_LENGTH = 6;
 	private static final int USERNAME_LIMIT = 200;
 	private static final int DISPLAY_NAME_LIMIT = 100;
@@ -29,12 +26,14 @@ public class LoginFragment extends BaseFragment {
 	private EditText usernameEditText 		= null;
 	private EditText displayNameEditText	= null;
 	private TextView errorTextView			= null;
+	private MenuItem settingsMenuItem 		= null;
 
 	public LoginFragment() {
 	}
 
-	public static LoginFragment newInstance() {
+	public static LoginFragment newInstance(MenuItem settingsMenuItem) {
 		LoginFragment fragment = new LoginFragment();
+		fragment.settingsMenuItem = settingsMenuItem;
 
 		return fragment;
 	}
@@ -56,6 +55,9 @@ public class LoginFragment extends BaseFragment {
 
 	    getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 	    getActivity().getWindow().setBackgroundDrawableResource(R.drawable.slqsm);
+		if (settingsMenuItem != null) {
+			settingsMenuItem.setVisible(true);
+		}
     }
 	
 	@Override
@@ -63,11 +65,15 @@ public class LoginFragment extends BaseFragment {
         super.onPause();
 
         getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+		if (settingsMenuItem != null) {
+			settingsMenuItem.setVisible(false);
+		}
 	}
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		View view = inflater.inflate(R.layout.login_fragment_layout, container, false);
+
 		Button loginButton = (Button) view.findViewById(R.id.login_button);
 
 		usernameEditText = (EditText) view.findViewById(R.id.username_field);
@@ -84,7 +90,7 @@ public class LoginFragment extends BaseFragment {
 			displayNameEditText.setText(lastDisplayName);
 		}
 
-		loginButton.setOnClickListener(new OnClickListener() {
+		loginButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				onLoginClick();
@@ -101,7 +107,7 @@ public class LoginFragment extends BaseFragment {
 			errorTextView.setVisibility(View.VISIBLE);
 			errorTextView.setText(errorDescription);
 		}
-		
+
 		return view;
 	}
 
@@ -109,20 +115,19 @@ public class LoginFragment extends BaseFragment {
 		errorTextView.setText("");
 		String username = usernameEditText.getText().toString();
 		if (username.isEmpty()) {
-			Toast.makeText(getActivity(), R.string.enter_username_toast, Toast.LENGTH_LONG).show();
-			
-			LogSdk.e(TAG,"onLogin username is empty");
+			showErrorMessageBox(getString(R.string.login_title), getString(R.string.enter_username_toast));
+
 			return;
 		}
 
 		if (username.length() < MIN_USERNAME_LENGTH) {
-			showErrorMessageBox(getString(R.string.join_session), getString(R.string.min_username_length));
+			showErrorMessageBox(getString(R.string.characters_missing), getString(R.string.min_username_length));
 
 			return;
 		}
 		
 		if (!username.matches("^([a-zA-Z0-9-_%. ])+$") || username.length() > USERNAME_LIMIT) {
-			showErrorMessageBox(getString(R.string.join_session), getString(R.string.wrong_username_id));
+			showErrorMessageBox(getString(R.string.login_title), getString(R.string.wrong_username_id));
 			
 			return;
 		}
@@ -142,13 +147,13 @@ public class LoginFragment extends BaseFragment {
 	private boolean checkDisplayName(String displayName)
 	{
 		if (displayName.isEmpty()) {
-			Toast.makeText(getActivity(), R.string.enter_conference_display_name, Toast.LENGTH_LONG).show();
+			showErrorMessageBox(getString(R.string.login_title), getString(R.string.enter_conference_display_name));
 
 			return false;
 		}
 
 		if (displayName.length() > DISPLAY_NAME_LIMIT) {
-			showErrorMessageBox(getString(R.string.join_session), getString(R.string.display_name_too_long));
+			showErrorMessageBox(getString(R.string.login_title), getString(R.string.display_name_too_long));
 
 			return false;
 		}

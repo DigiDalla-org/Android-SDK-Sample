@@ -21,18 +21,17 @@ public class ApplicationSettings extends Hashtable<String, String> {
 	private static final String TOKEN = ""; // Put your application token here
 	public static final String	Token				  = "token";
 	public static final String	Username	          = "username";
-	public static final String	Password	          = "password";
 	public static final String	ResolutionLevel	      = "resolution_level";
-	public static final String	EffectId	          = "effect_id";
-	public static final String	CameraID	          = "camera_id";
 	public static final String	AvsSessionId	      = "avs_session_id";
 	public static final String	RandomAvsSessionId	  = "random_avs_session_id";
 	public static final String	AvsSessionDisplayName	= "avs_session_display_name";
-	public static final String	UseFixedAvs			  = "use_fixed_avs";
-	public static final String	AvsIp				  = "avs_ip";
 	public static final String	LogLevelKey			  = "log_level_key";
+	public static final String	UseCustomRender		  = "use_custom_render";
+	public static final String  SecurityState		  = "security_state";
 	private static final long	serialVersionUID	  = 1L;
 	public static final String	TAG	                  = "ApplicationSettings";
+	public static final String  SENT_TOKEN_TO_SERVER  = "sentTokenToServer";
+	public static final String  REGISTRATION_COMPLETE = "registrationComplete";
 	public static final String 	PREVIEW_ID			  = "";
 	private Context	           appcontext	          = null;
 

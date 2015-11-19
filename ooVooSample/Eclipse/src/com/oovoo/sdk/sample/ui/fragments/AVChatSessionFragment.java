@@ -4,6 +4,7 @@ import android.app.FragmentManager;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Point;
+import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -33,12 +34,14 @@ import com.oovoo.sdk.interfaces.Effect;
 import com.oovoo.sdk.interfaces.VideoController;
 import com.oovoo.sdk.interfaces.VideoControllerListener.RemoteVideoState;
 import com.oovoo.sdk.interfaces.VideoDevice;
+import com.oovoo.sdk.interfaces.VideoRender;
 import com.oovoo.sdk.oovoosdksampleshow.R;
 import com.oovoo.sdk.sample.app.ApplicationSettings;
 import com.oovoo.sdk.sample.app.ooVooSdkSampleShowApp;
 import com.oovoo.sdk.sample.app.ooVooSdkSampleShowApp.CallControllerListener;
-import com.oovoo.sdk.sample.app.ooVooSdkSampleShowApp.NetworkReliabilityListener;
+import com.oovoo.sdk.sample.app.ooVooSdkSampleShowApp.NetworkListener;
 import com.oovoo.sdk.sample.app.ooVooSdkSampleShowApp.ParticipantsListener;
+import com.oovoo.sdk.sample.ui.CustomVideoPanel;
 import com.oovoo.sdk.sample.ui.SampleActivity.MenuList;
 import com.oovoo.sdk.sample.ui.SignalBar;
 import com.oovoo.sdk.sample.ui.fragments.AVChatSessionFragment.VideoAdapter.VideoItem;
@@ -47,7 +50,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class AVChatSessionFragment extends BaseFragment implements ParticipantsListener, CallControllerListener, View.OnClickListener, OnItemClickListener, NetworkReliabilityListener {
+public class AVChatSessionFragment extends BaseFragment implements ParticipantsListener, CallControllerListener, View.OnClickListener, OnItemClickListener, NetworkListener {
 
     public enum CameraState {
         BACK_CAMERA(0), FRONT_CAMERA(1), MUTE_CAMERA(2);
@@ -73,26 +76,36 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
     private View callbar = null;
     private GridView videoGridView = null;
     private VideoAdapter videoAdapter = null;
-    private VideoPanel fullScreenRemoteview = null;
+    private VideoRender fullScreenRemoteview = null;
     private ImageView fullScreenAvatar = null;
     private TextView fullScreenLabel = null;
     private MenuItem signalStrengthMenuItem = null;
+    private MenuItem secureNetworkMenuItem = null;
     private MenuItem informationMenuItem = null;
     private CameraState cameraState = CameraState.FRONT_CAMERA;
     private ArrayList<Effect> filters = null;
 
+
     public AVChatSessionFragment() {
     }
 
-    public static final AVChatSessionFragment newInstance(MenuItem signalStrengthMenuItem, MenuItem informationMenuItem) {
+    public static final AVChatSessionFragment newInstance(MenuItem signalStrengthMenuItem,
+                                                          MenuItem secureNetworkMenuItem,
+                                                          MenuItem informationMenuItem) {
         AVChatSessionFragment instance = new AVChatSessionFragment();
         instance.setSignalStrengthMenuItem(signalStrengthMenuItem);
+        instance.setSecureNetworkMenuItem(secureNetworkMenuItem);
         instance.setInformationMenuItem(informationMenuItem);
+
         return instance;
     }
 
     public void setSignalStrengthMenuItem(MenuItem signalStrengthMenuItem) {
         this.signalStrengthMenuItem = signalStrengthMenuItem;
+    }
+
+    public void setSecureNetworkMenuItem(MenuItem secureNetworkMenuItem) {
+        this.secureNetworkMenuItem = secureNetworkMenuItem;
     }
 
     public void setInformationMenuItem(MenuItem informationMenuItem) {
@@ -113,7 +126,13 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
         videoGridView.setAdapter(videoAdapter);
         videoGridView.setOnItemClickListener(this);
 
-        fullScreenRemoteview = (VideoPanel) self.findViewById(R.id.full_screen_video_panel_remoteview);
+        String useCustomRenderValue = settings().get(ApplicationSettings.UseCustomRender);
+        if (useCustomRenderValue != null && Boolean.valueOf(useCustomRenderValue)) {
+            fullScreenRemoteview = (CustomVideoPanel) self.findViewById(R.id.full_screen_custom_panel_remoteview);
+        } else {
+            fullScreenRemoteview = (VideoPanel) self.findViewById(R.id.full_screen_video_panel_remoteview);
+        }
+
         fullScreenAvatar = (ImageView) self.findViewById(R.id.full_screen_avatar_image_view);
         fullScreenLabel = (TextView) self.findViewById(R.id.full_screen_label);
         setupFullScreenViewClickListener();
@@ -122,6 +141,18 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
 
         app().addParticipantListener(this);
         app().setControllerListener(this);
+
+        try {
+            String securityState = settings().get(ApplicationSettings.SecurityState);
+            if (securityState != null && Boolean.valueOf(securityState)) {
+                secureNetworkMenuItem.setIcon(getResources().getDrawable(R.drawable.menu_ic_lock));
+            } else {
+                secureNetworkMenuItem.setIcon(getResources().getDrawable(R.drawable.menu_ic_lock_unlock));
+            }
+        }
+        catch(Exception err){
+            LogSdk.e(TAG,"onCreateView "+err);
+        }
 
         return self;
     }
@@ -162,6 +193,8 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                             item = menu.add(view.getId(), CameraState.FRONT_CAMERA.getValue(), 0, R.string.front_camera);
                         } else if (camera.toString().equals("BACK")) {
                             item = menu.add(view.getId(), CameraState.BACK_CAMERA.getValue(), 0, R.string.back_camera);
+                        } else {
+                            item = menu.add(view.getId(), -1, 0, R.string.unknown);
                         }
 
                         item.setOnMenuItemClickListener(new DeviceMenuClickListener(camera) {
@@ -222,7 +255,7 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
             @Override
             public void onClick(View v) {
                 app().onEndOfCall();
-
+                app().sendEndOfCall();
 
                 int count = getFragmentManager().getBackStackEntryCount();
                 String name = getFragmentManager().getBackStackEntryAt(count - 2).getName();
@@ -273,7 +306,7 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
         app().selectCamera("FRONT");
         app().changeResolution(VideoController.ResolutionLevel.ResolutionLevelMed);
         app().openPreview();
-        app().startTransmit();
+//        app().startTransmit();
         settings().put(ApplicationSettings.ResolutionLevel, toResolutionString(VideoController.ResolutionLevel.ResolutionLevelMed));
 
         prepareButtonMenu((Button) callbar.findViewById(R.id.videoResolution), new MenuList() {
@@ -380,34 +413,15 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
         return friendlyName;
     }
 
-    private VideoController.ResolutionLevel stringToResolution(String level) {
-        VideoController.ResolutionLevel resolution = VideoController.ResolutionLevel.ResolutionLevelMed;
-        if (level.equalsIgnoreCase("Low")) {
-            return VideoController.ResolutionLevel.ResolutionLevelLow;
-        }
-
-        if (level.equalsIgnoreCase("Medium")) {
-            return VideoController.ResolutionLevel.ResolutionLevelMed;
-        }
-
-        if (level.equalsIgnoreCase("HD")) {
-            return VideoController.ResolutionLevel.ResolutionLevelHD;
-        }
-
-        if (level.equalsIgnoreCase("High")) {
-            return VideoController.ResolutionLevel.ResolutionLevelHigh;
-        }
-
-        return resolution;
-    }
-
     @Override
     public void onResume() {
 
         try {
-            app().setNetworkReliabilityListener(this);
+            app().setNetworkListener(this);
             signalStrengthMenuItem.setVisible(true);
+            secureNetworkMenuItem.setVisible(true);
             informationMenuItem.setVisible(true);
+
         } catch (Exception err) {
             LogSdk.e(TAG, "onResume" + err);
         }
@@ -420,8 +434,9 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
         super.onPause();
 
         try {
-            app().setNetworkReliabilityListener(null);
+            app().setNetworkListener(null);
             signalStrengthMenuItem.setVisible(false);
+            secureNetworkMenuItem.setVisible(false);
             informationMenuItem.setVisible(false);
         } catch (Exception err) {
 
@@ -450,18 +465,32 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
         super.onConfigurationChanged(newConfig);
 
         if (app().isTablet()) {
-            updatePreviewLayout(newConfig);
+            updatePreviewLayout();
         }
     }
 
-    public void updatePreviewLayout(Configuration newConfig) {
+    public void updatePreviewLayout() {
         VideoItem item = videoAdapter.getItem(0);
-        View gridItem = (View) item.getVideo().getTag(R.layout.video_grid_item);
-        int[] paddings = getVideoWindowPaddings();
-        int width = videoAdapter.isPreviewFullScreen() ? getDisplaySize().x :
-                (getDisplaySize().x - gridItem.getPaddingLeft() * 3) / 2;
-        int height = (getDisplaySize().y - (paddings[0] + paddings[1]));
-        gridItem.setLayoutParams(new GridView.LayoutParams(width, height));
+        if (item != null) {
+            View gridItem = (View) ((View) item.getVideo()).getTag(R.layout.video_grid_item);
+            int[] paddings = getVideoWindowPaddings();
+            int width = videoAdapter.isPreviewFullScreen() ? getDisplaySize().x :
+                    (getDisplaySize().x - gridItem.getPaddingLeft() * 3) / 2;
+            int height = videoAdapter.isPreviewFullScreen() ? (getDisplaySize().y - (paddings[0] + paddings[1])) :
+                    (getDisplaySize().y - (paddings[0] + paddings[1])) / 2;
+
+            if (!videoAdapter.isPreviewFullScreen()) {
+                for (int i = 0; i < videoAdapter.getCount(); i++) {
+                    item = videoAdapter.getItem(i);
+                    if (item.getVideo() != null) {
+                        gridItem = (View) ((View) item.getVideo()).getTag(R.layout.video_grid_item);
+                        gridItem.setLayoutParams(new GridView.LayoutParams(width, height));
+                    }
+                }
+            } else {
+                gridItem.setLayoutParams(new GridView.LayoutParams(width, height));
+            }
+        }
     }
 
     public Point getDisplaySize() {
@@ -585,8 +614,8 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                 int width = getDisplaySize().x;
                 int height = (getDisplaySize().y - (paddings[0] + paddings[1]));
 
-                View gridItem = (View) item.getVideo().getTag(R.layout.video_grid_item);
-                item.getVideo().setZOrderMediaOverlay(true);
+                View gridItem = (View) ((View)item.getVideo()).getTag(R.layout.video_grid_item);
+                ((GLSurfaceView)item.getVideo()).setZOrderMediaOverlay(true);
                 gridItem.setLayoutParams(new GridView.LayoutParams(width, height));
 
                 p1[0] = gridItem.getPaddingLeft();
@@ -606,8 +635,8 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                 item.setFullScreen(true);
             } else if (item.getUserId().isEmpty() && item.isFullScreen()) {
 
-                View gridItem = (View) item.getVideo().getTag(R.layout.video_grid_item);
-                item.getVideo().setZOrderMediaOverlay(false);
+                View gridItem = (View) ((View)item.getVideo()).getTag(R.layout.video_grid_item);
+                ((GLSurfaceView)item.getVideo()).setZOrderMediaOverlay(false);
                 gridItem.setPadding(p1[0], p1[1], p1[2], p1[3]);
                 videoGridView.setPadding(p2[0], p2[1], p2[2], p2[3]);
 
@@ -623,14 +652,13 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
 
             } else {
 
-                fullScreenRemoteview.setTag(R.id.video_panel_view, item);
-                fullScreenRemoteview.setVisibility(View.VISIBLE);
-                fullScreenRemoteview.setZOrderMediaOverlay(true);
+                ((View)fullScreenRemoteview).setTag(R.id.video_panel_view, item);
+                ((View)fullScreenRemoteview).setVisibility(View.VISIBLE);
+                ((GLSurfaceView)fullScreenRemoteview).setZOrderMediaOverlay(true);
                 fullScreenLabel.setText(item.getUserData());
                 fullScreenLabel.setVisibility(View.VISIBLE);
 
-                fullScreenRemoteview.setVideoRenderStateChangeListener(new VideoPanel.VideoRenderStateChangeListener() {
-
+                setVideoRenderStateChangeListener(fullScreenRemoteview, new VideoPanel.VideoRenderStateChangeListener() {
                     @Override
                     public void onVideoRenderStart() {
                         try {
@@ -659,14 +687,17 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                 item = videoAdapter.getItem(i);
                 try {
                     if (!item.getUserId().isEmpty()) {
-                        item.getVideo().setVisibility(visibility);
-                        View gridItem = (View)item.getVideo().getTag(R.layout.video_grid_item);
+                        ((View)item.getVideo()).setVisibility(visibility);
+                        View gridItem = (View)((View)item.getVideo()).getTag(R.layout.video_grid_item);
                         gridItem.setVisibility(visibility);
                     }
 
                 } catch (Exception ex) {
                     LogSdk.e("TAG", ex.toString());
                 }
+            }
+            if (app().isTablet()) {
+                updatePreviewLayout();
             }
 
             videoAdapter.notifyDataSetChanged();
@@ -678,18 +709,18 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
             for (int i = 0; i < videoAdapter.getCount(); i++) {
                 VideoItem item = videoAdapter.getItem(i);
                 if (item.getVideo() != null) {
-                    item.getVideo().setVisibility(View.VISIBLE);
-                    View gridItem = (View)item.getVideo().getTag(R.layout.video_grid_item);
+                    ((View)item.getVideo()).setVisibility(View.VISIBLE);
+                    View gridItem = (View)((View)item.getVideo()).getTag(R.layout.video_grid_item);
                     gridItem.setVisibility(View.VISIBLE);
                 }
             }
 
-            VideoItem item = (VideoItem) fullScreenRemoteview.getTag(R.id.video_panel_view);
+            VideoItem item = (VideoItem) ((View)fullScreenRemoteview).getTag(R.id.video_panel_view);
             app().unbindVideoPanel(item.getUserId(), fullScreenRemoteview);
 
-            fullScreenRemoteview.setVisibility(View.GONE);
-            fullScreenRemoteview.setVideoRenderStateChangeListener(null);
-            fullScreenRemoteview.setZOrderMediaOverlay(false);
+            ((View)fullScreenRemoteview).setVisibility(View.GONE);
+            ((GLSurfaceView)fullScreenRemoteview).setZOrderMediaOverlay(false);
+            setVideoRenderStateChangeListener(fullScreenRemoteview, null);
             fullScreenAvatar.setVisibility(View.GONE);
             fullScreenLabel.setVisibility(View.GONE);
 
@@ -704,7 +735,7 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
     }
 
     public void setupFullScreenViewClickListener() {
-        fullScreenRemoteview.setOnClickListener(new OnClickListener() {
+        ((View)fullScreenRemoteview).setOnClickListener(new OnClickListener() {
 
             @Override
             public void onClick(View v) {
@@ -858,7 +889,7 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
         private final LayoutInflater mInflater;
 
         private class ViewHolder {
-        	VideoPanel videoPanel;
+        	VideoRender videoPanel;
         	TextView displayNameTextView;
         	TextView noVideoMessage;
         	ImageView avatarImageView;
@@ -885,49 +916,57 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
         public View getView(final int position, View convertView, ViewGroup viewGroup) {
 
             try {
-                ViewHolder viewHolder = null;
-                View v = convertView;
+            	ViewHolder viewHolder = null;
+            	View v = convertView;
 
                 VideoItem item = getItem(position);
 
-                VideoPanel panel = item != null ? item.getVideo() : null;
-                VideoPanel cached = (VideoPanel) (v != null ? v.getTag(R.id.video_panel_view) : null);
-                boolean must_process_new_video_panel = panel == null || cached == null || !panel.equals(cached);
+                VideoRender panel = item != null ? item.getVideo() : null;
+                VideoRender cached = (VideoPanel) (v != null ? v.getTag(R.id.video_panel_view) : null);
+                boolean must_process_new_video_panel = panel == null || cached == null ||  !panel.equals(cached);
 
                 if (item != null) {
                     LogSdk.d(TAG, "VideoAdapter => video (getView)  item = " + (item.getUserId() == null ? "preview " : item.getUserId()) + ", at position = " + position + ", video panel need to be updated ? " + (must_process_new_video_panel ? "Yes" : "No"));
                 } else
                     LogSdk.d(TAG, "VideoAdapter => video (getView)  item = not exist for position = " + position + ", video panel need to be updated ? " + (must_process_new_video_panel ? "Yes" : "No"));
 
-                if (must_process_new_video_panel) {
+                if (must_process_new_video_panel)
+                {
                     if (v == null) {
-                        viewHolder = new ViewHolder();
+                    	viewHolder = new ViewHolder();
+                    	
+                    	v = mInflater.inflate(R.layout.video_grid_item, viewGroup, false);
 
-                        v = mInflater.inflate(R.layout.video_grid_item, viewGroup, false);
-
-                        viewHolder.videoPanel = (VideoPanel) v.findViewById(R.id.video_panel_view);
+                        String useCustomRenderValue = settings().get(ApplicationSettings.UseCustomRender);
+                        if (useCustomRenderValue != null && Boolean.valueOf(useCustomRenderValue)) {
+                            viewHolder.videoPanel = (CustomVideoPanel) v.findViewById(R.id.custom_panel_view);
+                        } else {
+                            viewHolder.videoPanel = (VideoPanel) v.findViewById(R.id.video_panel_view);
+                        }
                         LogSdk.d(TAG, "VideoAdapter => video (view  null)  video = " + viewHolder.videoPanel.hashCode());
-                        viewHolder.videoPanel.setTag(R.layout.video_grid_item, v);
+                        ((View)viewHolder.videoPanel).setTag(R.layout.video_grid_item, v);
 
                         viewHolder.displayNameTextView = (TextView) v.findViewById(R.id.display_name_text_view);
                         viewHolder.avatarImageView = (ImageView) v.findViewById(R.id.avatar_image_view);
                         viewHolder.noVideoMessage = (TextView) v.findViewById(R.id.no_video_message);
 
                         v.setTag(viewHolder);
-
+                        
                         if (item.getVideo() == null) {
                             item.setVideo(viewHolder.videoPanel);
                             app().bindVideoPanel(item.getUserId(), viewHolder.videoPanel);
-                            viewHolder.videoPanel.setVisibility(View.VISIBLE);
+                            ((View)viewHolder.videoPanel).setVisibility(View.VISIBLE);
                         }
-
+                        
                     } else {
-                        viewHolder = (ViewHolder) v.getTag();
-
+                    	viewHolder = (ViewHolder) v.getTag();
+                    	
                         if (item.getVideo() == null) {
                             item.setVideo(viewHolder.videoPanel);
                             app().bindVideoPanel(item.getUserId(), viewHolder.videoPanel);
-                            viewHolder.videoPanel.setVisibility(View.VISIBLE);
+                            if (((View)fullScreenRemoteview).getVisibility() != View.VISIBLE) {
+                                ((View) viewHolder.videoPanel).setVisibility(View.VISIBLE);
+                            }
                         }
                     }
                 }
@@ -941,55 +980,61 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                     height = getDisplaySize().y - (paddings[0] + paddings[1]);
                 } else {
                     if (isPreviewFullScreen()) {
+                    	v.setVisibility(View.INVISIBLE);
+                        ((View)item.getVideo()).setVisibility(View.INVISIBLE);
+                    } else if (((View)fullScreenRemoteview).getVisibility() == View.INVISIBLE && v.getVisibility() == View.INVISIBLE) {
+                    	v.setVisibility(View.VISIBLE);
+                        ((View)item.getVideo()).setVisibility(View.VISIBLE);
+                    } else if (((View)fullScreenRemoteview).getVisibility() == View.VISIBLE && !item.getUserId().isEmpty()) {
+                        ((View)item.getVideo()).setVisibility(View.INVISIBLE);
                         v.setVisibility(View.INVISIBLE);
-                        item.getVideo().setVisibility(View.INVISIBLE);
-                    } else if (v.getVisibility() == View.INVISIBLE) {
-                        v.setVisibility(View.VISIBLE);
-                        item.getVideo().setVisibility(View.VISIBLE);
                     }
                 }
-
+                
                 boolean isMuted = app().getMuted().get(item.getUserId()) == null ? false :
                         app().getMuted().get(item.getUserId());
                 if (isMuted) {
                     item.showAvatar();
                 }
 
-                viewHolder.videoPanel.setTag(new Point(width, height));
-
+                ((View)viewHolder.videoPanel).setTag(new Point(width, height));
+                
                 viewHolder.displayNameTextView.setText(item.getUserData());
 
                 if (item.isAvatarVisible()) {
-                    if (fullScreenRemoteview.getVisibility() == View.VISIBLE) {
+                    VideoItem videoItem = (VideoItem) ((View)fullScreenRemoteview).getTag(R.id.video_panel_view);
+                    if (videoItem != null && videoItem.getUserId().equals(item.getUserId()) &&
+                            ((View)fullScreenRemoteview).getVisibility() == View.VISIBLE) {
                         fullScreenAvatar.setVisibility(View.VISIBLE);
                     } else {
                         ViewGroup.LayoutParams layoutParams = viewHolder.avatarImageView.getLayoutParams();
                         layoutParams.width = width;
                         layoutParams.height = height;
                         viewHolder.avatarImageView.setLayoutParams(layoutParams);
-                        viewHolder.avatarImageView.setVisibility(View.VISIBLE);
+                	viewHolder.avatarImageView.setVisibility(View.VISIBLE);
                     }
 
                 } else {
-                    viewHolder.avatarImageView.setVisibility(View.INVISIBLE);
+                	viewHolder.avatarImageView.setVisibility(View.INVISIBLE);
                 }
 
                 if (item.isErrorMessageVisible()) {
-                    viewHolder.noVideoMessage.setText(getString(R.string.video_cannot_be_viewed));
-                    viewHolder.noVideoMessage.setVisibility(View.VISIBLE);
+                	viewHolder.noVideoMessage.setText(getString(R.string.video_cannot_be_viewed));
+                	viewHolder.noVideoMessage.setVisibility(View.VISIBLE);
                     viewHolder.avatarImageView.setVisibility(View.VISIBLE);
                 } else {
-                    viewHolder.noVideoMessage.setVisibility(View.GONE);
+                	viewHolder.noVideoMessage.setVisibility(View.GONE);
                     if (!item.isAvatarVisible()) {
-                        viewHolder.avatarImageView.setVisibility(View.INVISIBLE);
+                    	viewHolder.avatarImageView.setVisibility(View.INVISIBLE);
                     }
                 }
 
                 return v;
-            } catch (Exception err) {
+            }
+            catch(Exception err){
                 err.printStackTrace();
             }
-
+            
             return convertView;
         }
 
@@ -1024,10 +1069,10 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
             int itemPosition = getItemPosition(userId);
             VideoItem item = getItem(itemPosition);
 
-            VideoPanel video = item.getVideo();
+            VideoRender video = item.getVideo();
             if (video != null) {
-                View gridItem = (View)video.getTag(R.layout.video_grid_item);
-                video.setVisibility(View.INVISIBLE);
+                View gridItem = (View)((View)video).getTag(R.layout.video_grid_item);
+                ((View)video).setVisibility(View.INVISIBLE);
                 gridItem.setVisibility(View.VISIBLE);
                 app().unbindVideoPanel(item.getUserId(), video);
                 item.setVideo(null);
@@ -1048,9 +1093,9 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
             Iterator<VideoItem> iter = mItems.iterator();
             while (iter.hasNext()) {
                 VideoItem item = iter.next();
-                VideoPanel video = item.getVideo();
+                VideoRender video = item.getVideo();
                 if (video != null) {
-                    video.setVisibility(View.INVISIBLE);
+                    ((View)video).setVisibility(View.INVISIBLE);
                     item.setVideo(null);
                 }
                 app().unbindVideoPanel(item.getUserId(), video);
@@ -1059,9 +1104,9 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
 
         public void showAvatar(String userId) {
             try {
-                VideoItem videoItem = (VideoItem) fullScreenRemoteview.getTag(R.id.video_panel_view);
+                VideoItem videoItem = (VideoItem) ((View)fullScreenRemoteview).getTag(R.id.video_panel_view);
                 if (videoItem != null && videoItem.getUserId().equals(userId) &&
-                        fullScreenRemoteview.getVisibility() == View.VISIBLE) {
+                        ((View)fullScreenRemoteview).getVisibility() == View.VISIBLE) {
                     fullScreenAvatar.setVisibility(View.VISIBLE);
                 }
 
@@ -1079,9 +1124,9 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
         }
 
         public void showNoVideoMessage(String userId) {
-            VideoItem videoItem = (VideoItem) fullScreenRemoteview.getTag(R.id.video_panel_view);
+            VideoItem videoItem = (VideoItem) ((View)fullScreenRemoteview).getTag(R.id.video_panel_view);
             if (videoItem != null && videoItem.getUserId().equals(userId) &&
-                    fullScreenRemoteview.getVisibility() == View.VISIBLE) {
+                    ((View)fullScreenRemoteview).getVisibility() == View.VISIBLE) {
                 //TODO: video cannot be viewed in full screen mode
             }
 
@@ -1097,9 +1142,9 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
 
         public void hideAvatar(String userId) {
             try {
-                VideoItem videoItem = (VideoItem) fullScreenRemoteview.getTag(R.id.video_panel_view);
+                VideoItem videoItem = (VideoItem) ((View)fullScreenRemoteview).getTag(R.id.video_panel_view);
                 if (videoItem != null && videoItem.getUserId().equals(userId) &&
-                        fullScreenRemoteview.getVisibility() == View.VISIBLE) {
+                        ((View)fullScreenRemoteview).getVisibility() == View.VISIBLE) {
                     fullScreenAvatar.setVisibility(View.INVISIBLE);
                 }
 
@@ -1118,9 +1163,9 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
 
         public void hideNoVideoMessage(String userId) {
             try {
-                VideoItem videoItem = (VideoItem) fullScreenRemoteview.getTag(R.id.video_panel_view);
+                VideoItem videoItem = (VideoItem) ((View)fullScreenRemoteview).getTag(R.id.video_panel_view);
                 if (videoItem != null && videoItem.getUserId().equals(userId) &&
-                        fullScreenRemoteview.getVisibility() == View.VISIBLE) {
+                        ((View)fullScreenRemoteview).getVisibility() == View.VISIBLE) {
                     //fullScreenAvatar.setVisibility(View.GONE);
                 }
 
@@ -1138,7 +1183,7 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
         }
 
         public class VideoItem {
-            private VideoPanel video = null;
+            private VideoRender video = null;
             private boolean isAvatarVisible = true;
             private boolean isErrorMessageVisible = false;
             private boolean isFullScreen = false;
@@ -1152,7 +1197,7 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                 showAvatar();
             }
 
-            public void setVideo(VideoPanel video) {
+            public void setVideo(VideoRender video) {
                 if (video != null) {
                     this.listener = new VideoPanel.VideoRenderStateChangeListener() {
                         public String toString() {
@@ -1183,13 +1228,13 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
 
                         }
                     };
-                    video.setVideoRenderStateChangeListener(this.listener);
+                    setVideoRenderStateChangeListener(video, this.listener);
                 }
 
                 this.video = video;
             }
 
-            public VideoPanel getVideo() {
+            public VideoRender getVideo() {
                 return this.video;
             }
 
@@ -1211,11 +1256,11 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
             }
 
             public void enableListener() {
-                video.setVideoRenderStateChangeListener(listener);
+                setVideoRenderStateChangeListener(video, listener);
             }
 
             public void disableListener() {
-                video.setVideoRenderStateChangeListener(null);
+                setVideoRenderStateChangeListener(video, null);
             }
 
             public void showErrorMessage() {
@@ -1244,9 +1289,17 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
         }
     }
 
+    public void setVideoRenderStateChangeListener(VideoRender video, VideoPanel.VideoRenderStateChangeListener listener) {
+        if (video instanceof CustomVideoPanel) {
+            ((CustomVideoPanel)video).setVideoRenderStateChangeListener(listener);
+        } else if (video instanceof VideoPanel) {
+            ((VideoPanel)video).setVideoRenderStateChangeListener(listener);
+        }
+    }
+
     public boolean onBackPressed() {
         app().onEndOfCall();
-
+        app().sendEndOfCall();
 
         int count = getFragmentManager().getBackStackEntryCount();
         String name = getFragmentManager().getBackStackEntryAt(count - 2).getName();
@@ -1259,6 +1312,16 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
     public void onNetworkSignalStrength(int level) {
         SignalBar signalBar = (SignalBar) signalStrengthMenuItem.getActionView();
         signalBar.setLevel(level);
+    }
+
+    @Override
+    public void onNetworkSecurityState(boolean isSecure)
+    {
+        if (isSecure) {
+            secureNetworkMenuItem.setIcon(getResources().getDrawable(R.drawable.menu_ic_lock));
+        } else {
+            secureNetworkMenuItem.setIcon(getResources().getDrawable(R.drawable.menu_ic_lock_unlock));
+        }
     }
 
     public void muteVideo(String userId) {
