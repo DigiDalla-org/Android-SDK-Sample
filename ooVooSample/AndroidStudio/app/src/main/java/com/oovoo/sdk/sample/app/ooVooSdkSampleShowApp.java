@@ -364,6 +364,7 @@ public class ooVooSdkSampleShowApp extends Application implements VideoControlle
 				width + "x" + height + "]");
 		if (state == ooVooCamera.ooVooCameraState.CameraOpened) {
 			sdk.getAVChat().getVideoController().openPreview();
+			sdk.getAVChat().getVideoController().startTransmit();
 			m_iscameraopened = true;
 		} else if (state == ooVooCamera.ooVooCameraState.CameraClosed) {
 			sdk.getAVChat().getVideoController().closePreview();
@@ -1243,31 +1244,4 @@ public class ooVooSdkSampleShowApp extends Application implements VideoControlle
 			}
 		});
 	}
-
-//	@Override
-//	public void onDetectingFaceStarted() {
-//		LogSdk.d(TAG, "Affdex -> onDetectingFaceStarted");
-//	}
-//
-//	@Override
-//	public void onDetectingFaceStopped() {
-//		LogSdk.d(TAG, "Affdex -> onDetectingFaceStopped");
-//	}
-//
-//	@Override
-//	public void onDetectingFaceFinished() {
-//		LogSdk.d(TAG, "Affdex -> onDetectingFaceFinished");
-//	}
-//
-//	@Override
-//	public void onDetectingFailed(Exception err) {
-//		LogSdk.e(TAG, "Affdex -> onDetectingFailed: " + err.getMessage());
-//	}
-//
-//	@Override
-//	public void onDetectingResults(AffdexPluginMetric[] metrics, float timestamp) {
-//		for (AffdexPluginMetric metric : metrics) {
-//			LogSdk.d(TAG, "Affdex -> name : " + metric.getName() + " value : " + metric.getValue());
-//		}
-//	}
 }

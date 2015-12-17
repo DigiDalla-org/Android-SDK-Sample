@@ -1076,8 +1076,9 @@ public class AVChatSessionFragment extends BaseFragment implements ParticipantsL
                 gridItem.setVisibility(View.VISIBLE);
                 app().unbindVideoPanel(item.getUserId(), video);
                 item.setVideo(null);
-                mItems.remove(item);
             }
+
+            mItems.remove(item);
 
             for (int i = itemPosition; i < mItems.size(); i++) {
                 item = getItem(i);
