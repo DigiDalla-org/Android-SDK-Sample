@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:custom="http://schemas.android.com/apk/res-auto"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+	
+	<FrameLayout
+	    android:layout_width="fill_parent"
+	    android:layout_height="fill_parent"
+	    android:layout_weight="1">
+
+		<com.oovoo.sdk.sample.ui.views.CustomScrollView
+			android:id="@+id/scroll_view"
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			android:fillViewport="true"
+			android:orientation="vertical" >
+
+			<LinearLayout
+				android:layout_width="fill_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical" >
+
+				<com.oovoo.sdk.sample.ui.views.ConferenceView
+					android:id="@+id/conference_view"
+					android:layout_width="fill_parent"
+					android:layout_height="wrap_content"
+					android:visibility="visible">
+				</com.oovoo.sdk.sample.ui.views.ConferenceView>
+
+			</LinearLayout>
+
+		</com.oovoo.sdk.sample.ui.views.CustomScrollView>
+
+	</FrameLayout>
+	
+	<LinearLayout
+		android:id="@+id/call_controll_layout"
+	   	android:layout_width="fill_parent"
+	   	android:layout_height="wrap_content"
+	   	android:gravity="bottom"
+	   	android:orientation="horizontal">
+	   
+	   	<include layout="@layout/call_controll" 
+	    	android:layout_width="match_parent"
+	       	android:layout_height="wrap_content"
+	       	android:layout_weight="1"/>
+	</LinearLayout>
+
+</LinearLayout>
